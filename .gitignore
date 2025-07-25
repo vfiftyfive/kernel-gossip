@@ -1,0 +1,49 @@
+# Rust build artifacts
+/target/
+Cargo.lock
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+
+# Kubernetes secrets
+*-secret.yaml
+*-secrets.yaml
+
+# Pixie API keys
+pixie-api-key.txt
+.pixie/
+
+# Test artifacts
+test-results/
+coverage/
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+
+# Python cache (for PxL scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS specific
+Thumbs.db
+ehthumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local development
+.local/
+scratch/

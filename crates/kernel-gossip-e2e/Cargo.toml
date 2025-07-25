@@ -1,0 +1,16 @@
+[package]
+name = "kernel-gossip-e2e"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+kernel-gossip-types = { path = "../kernel-gossip-types" }
+kernel-gossip-operator = { path = "../kernel-gossip-operator" }
+tokio = { workspace = true }
+kube = { workspace = true }
+k8s-openapi = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
