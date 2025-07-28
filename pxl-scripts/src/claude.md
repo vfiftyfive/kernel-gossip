@@ -26,7 +26,7 @@ df.severity = px.select(
 ```
 
 ## 📊 Current Implementation
-- [ ] cpu_throttle_detector.pxl
+- [x] cpu_throttle_detector.pxl
 - [ ] pod_creation_trace.pxl
 - [ ] memory_pressure_monitor.pxl
 - [ ] network_issue_finder.pxl
