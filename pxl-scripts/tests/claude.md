@@ -7,10 +7,10 @@
 4. Test webhook export format
 
 ## 📋 Test Status
-- Syntax validation: ⏳ Pending
-- Schema validation: ⏳ Pending
-- Integration tests: ⏳ Pending
-- Performance tests: ⏳ Pending
+- Syntax validation: ✅ Framework created
+- Schema validation: ✅ Framework created
+- Integration tests: ⏳ Requires real Pixie cluster
+- Performance tests: ✅ Framework created
 
 ## 🔧 Test Commands
 ```bash
