@@ -11,7 +11,7 @@
 3. E2E crate (depends on both)
 
 ## 📊 Crate Status
-- kernel-gossip-types: ███░░░░░░░ 30%
+- kernel-gossip-types: ██████████ 100% ✅
 - kernel-gossip-operator: ░░░░░░░░░░ 0%
 - kernel-gossip-e2e: ░░░░░░░░░░ 0%
 

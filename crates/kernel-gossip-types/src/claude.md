@@ -24,5 +24,5 @@ pub struct TypeNameSpec {
 ## 📊 Current Files
 - [x] lib.rs - exports
 - [x] pod_birth_certificate.rs
-- [ ] kernel_whisper.rs
-- [ ] common.rs - shared types
+- [x] kernel_whisper.rs
+- [ ] common.rs - shared types (not needed yet)
