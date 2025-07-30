@@ -12,16 +12,16 @@ Transform kernel whispers into Kubernetes wisdom through Pixie-powered eBPF obse
 ## 📊 Current Status
 **Day**: 1 of 20
 **Phase**: PxL Scripts (Phase 3)
-**Current Task**: Creating PxL test framework
-**Active Files**: pxl-scripts/tests/validate_pxl.py
+**Current Task**: Implementing pod_creation_trace.pxl
+**Active Files**: pxl-scripts/src/pod_creation_trace.pxl
 **Blocked**: None
-**Last Update**: 2025-07-26 00:45
+**Last Update**: 2025-07-26 01:00
 **Repository**: https://github.com/vfiftyfive/kernel-gossip
 
 ## Progress Tracker
 - Repository Setup: ██████████ 100% ✅
 - CRD Types: ██████████ 100% ✅
-- PxL Scripts: ██░░░░░░░░ 25%
+- PxL Scripts: █████░░░░░ 50%
 - Operator Core: ░░░░░░░░░░ 0%
 - Integration Tests: ░░░░░░░░░░ 0%
 - E2E Tests: ░░░░░░░░░░ 0%
