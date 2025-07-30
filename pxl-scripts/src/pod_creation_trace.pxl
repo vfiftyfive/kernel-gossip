@@ -1,0 +1,101 @@
+import px
+
+# Configuration from environment - NO HARDCODING
+WEBHOOK_URL = px.endpoint_config.get("WEBHOOK_URL", "http://kernel-gossip-operator:8080/webhook/pixie")
+POD_START_WINDOW = px.parse_int(px.endpoint_config.get("POD_START_WINDOW_MS", "5000"))  # 5 seconds
+
+def pod_creation_trace():
+    """
+    Traces the kernel cascade when pods are created.
+    Captures syscalls, namespace creation, cgroup operations.
+    """
+    
+    # Track syscalls during pod creation
+    syscalls_df = px.DataFrame('syscall_events')
+    
+    # Filter for recent pod creation events (within window)
+    syscalls_df = syscalls_df[px.now() - syscalls_df.time_ < px.duration_ns(POD_START_WINDOW * 1000000)]
+    
+    # Must have pod context
+    syscalls_df = syscalls_df[syscalls_df.pod_name != ""]
+    
+    # Count syscalls by type and pod
+    syscall_counts = syscalls_df.groupby(['pod_name', 'namespace', 'syscall']).agg(
+        count=('syscall', px.count)
+    )
+    
+    # Track namespace events
+    namespace_df = px.DataFrame('process_events')
+    namespace_df = namespace_df[namespace_df.event_type == 'PROCESS_EXEC']
+    namespace_df = namespace_df[px.now() - namespace_df.time_ < px.duration_ns(POD_START_WINDOW * 1000000)]
+    namespace_df = namespace_df[namespace_df.pod_name != ""]
+    
+    # Look for namespace creation patterns
+    namespace_events = namespace_df[
+        px.contains(namespace_df.args, "unshare") | 
+        px.contains(namespace_df.args, "nsenter")
+    ].groupby(['pod_name', 'namespace']).agg(
+        namespace_ops=('event_type', px.count)
+    )
+    
+    # Track cgroup events - look for cgroup write operations
+    cgroup_df = px.DataFrame('syscall_events')
+    cgroup_df = cgroup_df[
+        (cgroup_df.syscall == 'write') | 
+        (cgroup_df.syscall == 'openat')
+    ]
+    cgroup_df = cgroup_df[px.contains(cgroup_df.args, "cgroup")]
+    cgroup_df = cgroup_df[px.now() - cgroup_df.time_ < px.duration_ns(POD_START_WINDOW * 1000000)]
+    cgroup_df = cgroup_df[cgroup_df.pod_name != ""]
+    
+    cgroup_events = cgroup_df.groupby(['pod_name', 'namespace']).agg(
+        cgroup_writes=('syscall', px.count)
+    )
+    
+    # Combine all metrics
+    # Start with syscall counts
+    output = syscall_counts.groupby(['pod_name', 'namespace']).agg(
+        total_syscalls=('count', px.sum)
+    )
+    
+    # Join namespace operations
+    output = output.merge(
+        namespace_events,
+        how='left',
+        left_on=['pod_name', 'namespace'],
+        right_on=['pod_name', 'namespace'],
+        suffixes=['', '_ns']
+    )
+    
+    # Join cgroup operations
+    output = output.merge(
+        cgroup_events,
+        how='left',
+        left_on=['pod_name', 'namespace'],
+        right_on=['pod_name', 'namespace'],
+        suffixes=['', '_cg']
+    )
+    
+    # Fill nulls with 0
+    output.namespace_ops = px.select(px.is_null(output.namespace_ops), 0, output.namespace_ops)
+    output.cgroup_writes = px.select(px.is_null(output.cgroup_writes), 0, output.cgroup_writes)
+    
+    # Add metadata
+    output.timestamp = px.now()
+    output.cluster = px.vizier_id()
+    
+    # Calculate total duration (simplified - time from first to last syscall)
+    output.duration_ms = POD_START_WINDOW  # For now, use the window size
+    
+    # Add birth certificate fields
+    output.birth_type = "pod_creation_trace"
+    
+    # Select final columns
+    output = output[['timestamp', 'cluster', 'pod_name', 'namespace',
+                     'total_syscalls', 'namespace_ops', 'cgroup_writes', 
+                     'duration_ms', 'birth_type']]
+    
+    return output
+
+# Export to webhook
+px.export(pod_creation_trace(), px.Webhook(url=WEBHOOK_URL))
