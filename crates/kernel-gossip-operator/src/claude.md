@@ -22,11 +22,12 @@ src/
 6. Actions
 
 ## 📊 Current Implementation
-- [x] main.rs - entry point
+- [x] main.rs - entry point with controller integration
 - [x] config.rs - env config
 - [x] server.rs - basic server with health/metrics
 - [x] health endpoint
 - [x] webhook/mod.rs - payload types and handler
 - [x] actions/mod.rs - CRD creation actions
-- [ ] crd/mod.rs - CRD controllers
+- [x] crd/mod.rs - CRD controllers with reconciliation
 - [ ] decision/mod.rs - decision engine
+- [ ] metrics.rs - Prometheus metrics

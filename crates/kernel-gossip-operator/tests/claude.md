@@ -17,9 +17,10 @@
 - Server tests: ██████████ 100%
 - Webhook payload tests: ██████████ 100%
 - Actions unit tests: ██████████ 100%
-- Unit tests: ██████░░░░ 60%
+- Controller unit tests: ██████████ 100%
+- Unit tests: ████████░░ 80%
 - Integration tests: ░░░░░░░░░░ 0% (requires K8s cluster)
-- Controller tests: ░░░░░░░░░░ 0%
+- E2E tests: ░░░░░░░░░░ 0%
 
 ## 🔧 Test Utilities
 ```rust

@@ -20,7 +20,7 @@ Main operator that processes Pixie webhooks and manages CRDs
 - Webhook handler: ██████████ 100%
 - Webhook payload types: ██████████ 100%
 - CRD creation actions: ██████████ 100%
-- CRD controller: ░░░░░░░░░░ 0%
+- CRD controllers: ██████████ 100%
 - Decision engine: ░░░░░░░░░░ 0%
 - Remediation actions: ░░░░░░░░░░ 0%
 
