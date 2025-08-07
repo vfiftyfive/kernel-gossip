@@ -21,7 +21,7 @@ Main operator that processes Pixie webhooks and manages CRDs
 - Webhook payload types: ██████████ 100%
 - CRD creation actions: ██████████ 100%
 - CRD controllers: ██████████ 100%
-- Recommendation engine: ░░░░░░░░░░ 0%
+- Recommendation engine: ██████████ 100%
 - Status updates: ░░░░░░░░░░ 0%
 
 ## 🧪 Test Requirements

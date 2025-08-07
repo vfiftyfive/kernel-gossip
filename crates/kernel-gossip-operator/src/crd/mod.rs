@@ -7,6 +7,7 @@ use futures::StreamExt;
 use tokio::time::Duration;
 use tracing::{error, info, warn};
 use kernel_gossip_types::{PodBirthCertificate, KernelWhisper, Severity};
+use crate::recommendation::RecommendationEngine;
 
 // Helper functions for unit testing
 pub fn reconcile_logic_pod_birth(pbc: &PodBirthCertificate) -> Result<(), String> {
@@ -105,18 +106,26 @@ pub async fn reconcile_kernel_whisper(
     let name = kw.name_any();
     info!("Reconciling KernelWhisper: {} with severity {:?}", name, kw.spec.severity);
     
-    // Check severity and take action if needed
+    // Generate recommendations using the recommendation engine
+    let recommendation_engine = RecommendationEngine::new();
+    if let Some(recommendation) = recommendation_engine.analyze_kernel_whisper(&kw) {
+        info!(
+            "📊 INSIGHT: {} - Priority: {}",
+            recommendation.insight, recommendation.priority
+        );
+        info!("💡 RECOMMENDATION: {}", recommendation.suggested_action);
+        info!("🔍 KERNEL EVIDENCE: {}", recommendation.kernel_evidence);
+        
+        // TODO: Update CRD status with recommendation (next task)
+    }
+    
+    // Log based on severity for immediate visibility
     match kw.spec.severity {
         Severity::Critical => {
             warn!(
                 "CRITICAL: Pod {} is experiencing {}% CPU throttling!",
                 kw.spec.pod_name, kw.spec.kernel_truth.throttled_percent
             );
-            
-            // TODO: Add recommendations to CRD status
-            // - Suggest: "Increase CPU limits by 50% to prevent throttling"
-            // - Evidence: "Kernel shows {}ms of throttled time in last period"
-            // - Impact: "Application response time increased by {}%"
         }
         Severity::Warning => {
             warn!(

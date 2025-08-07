@@ -29,5 +29,5 @@ src/
 - [x] webhook/mod.rs - payload types and handler
 - [x] actions/mod.rs - CRD creation actions
 - [x] crd/mod.rs - CRD controllers with reconciliation
-- [ ] decision/mod.rs - recommendation engine
+- [x] decision/mod.rs - recommendation engine
 - [ ] metrics.rs - Prometheus metrics
