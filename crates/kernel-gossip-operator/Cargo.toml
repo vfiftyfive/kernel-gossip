@@ -21,3 +21,4 @@ futures = { workspace = true }
 [dev-dependencies]
 axum-test = "14.0"
 uuid = { version = "1.6", features = ["v4"] }
+reqwest = "0.11"

@@ -22,7 +22,8 @@ src/
 6. Actions
 
 ## 📊 Current Implementation
-- [ ] main.rs - entry point
-- [ ] config.rs - env config
+- [x] main.rs - entry point
+- [x] config.rs - env config
+- [x] server.rs - basic server with health/metrics
+- [x] health endpoint
 - [ ] webhook/mod.rs
-- [ ] health endpoint

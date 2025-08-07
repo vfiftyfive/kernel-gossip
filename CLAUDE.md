@@ -11,11 +11,11 @@ Transform kernel whispers into Kubernetes wisdom through Pixie-powered eBPF obse
 
 ## 📊 Current Status
 **Day**: 1 of 20
-**Phase**: PxL Scripts (Phase 3)
-**Current Task**: Implementing pod_creation_trace.pxl
-**Active Files**: pxl-scripts/src/pod_creation_trace.pxl
+**Phase**: Operator Core (Phase 4)
+**Current Task**: Starting operator implementation with config and basic server
+**Active Files**: crates/kernel-gossip-operator/src/config.rs
 **Blocked**: None
-**Last Update**: 2025-07-26 01:00
+**Last Update**: 2025-07-26 01:15
 **Repository**: https://github.com/vfiftyfive/kernel-gossip
 
 ## Progress Tracker
@@ -62,3 +62,7 @@ Transform kernel whispers into Kubernetes wisdom through Pixie-powered eBPF obse
   - Fixed clippy warnings
   - All quality gates passing
 - CRD Types phase COMPLETE (100%)
+- PxL Scripts phase at 50%
+  - Implemented cpu_throttle_detector.pxl
+  - Implemented pod_creation_trace.pxl
+- Starting Operator Core phase

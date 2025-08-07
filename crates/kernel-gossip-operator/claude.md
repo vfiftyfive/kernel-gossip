@@ -4,14 +4,19 @@
 Main operator that processes Pixie webhooks and manages CRDs
 
 ## 📋 Components
-- [ ] Webhook server (Axum)
+- [x] Basic server (Axum)
+- [x] Config module
+- [x] Health endpoint
+- [x] Metrics endpoint
+- [ ] Webhook server handlers
 - [ ] CRD controllers
 - [ ] Decision engine
 - [ ] Action executors
-- [ ] Metrics endpoint
-- [ ] Health endpoint
 
 ## 📊 Implementation Status
+- Basic server: ██████████ 100%
+- Config module: ██████████ 100%
+- Health/metrics endpoints: ██████████ 100%
 - Webhook handler: ░░░░░░░░░░ 0%
 - CRD controller: ░░░░░░░░░░ 0%
 - Decision engine: ░░░░░░░░░░ 0%
@@ -24,6 +29,8 @@ Main operator that processes Pixie webhooks and manages CRDs
 - Controller reconciliation tests
 
 ## 🔧 Current Task
-- [ ] Create webhook test
-- [ ] Implement basic server
-- [ ] Add health endpoint
+- [x] Create config module with tests
+- [x] Implement basic server with tests
+- [x] Add health/metrics endpoints
+- [ ] Create webhook handler test
+- [ ] Implement webhook handler
