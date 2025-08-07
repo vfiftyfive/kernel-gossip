@@ -6,8 +6,9 @@ use kube::{
 use futures::StreamExt;
 use tokio::time::Duration;
 use tracing::{error, info, warn};
+use chrono;
 use kernel_gossip_types::{PodBirthCertificate, KernelWhisper, Severity};
-use crate::recommendation::RecommendationEngine;
+use crate::recommendation::{RecommendationEngine, Recommendation};
 
 // Helper functions for unit testing
 pub fn reconcile_logic_pod_birth(pbc: &PodBirthCertificate) -> Result<(), String> {
@@ -116,7 +117,17 @@ pub async fn reconcile_kernel_whisper(
         info!("💡 RECOMMENDATION: {}", recommendation.suggested_action);
         info!("🔍 KERNEL EVIDENCE: {}", recommendation.kernel_evidence);
         
-        // TODO: Update CRD status with recommendation (next task)
+        // Update CRD status with recommendation
+        let status_message = build_status_update(&recommendation);
+        if let Err(e) = update_kernel_whisper_status(&_ctx.client, &kw, &status_message).await {
+            warn!("Failed to update KernelWhisper status: {}", e);
+        }
+    } else {
+        // No recommendation needed - update status with healthy state
+        let status_message = build_status_update_no_action("Pod operating within normal parameters");
+        if let Err(e) = update_kernel_whisper_status(&_ctx.client, &kw, &status_message).await {
+            warn!("Failed to update KernelWhisper status: {}", e);
+        }
     }
     
     // Log based on severity for immediate visibility
@@ -206,6 +217,40 @@ pub async fn run_controllers(client: Client) -> Result<(), Box<dyn std::error::E
         _ = kw_controller => {},
     }
     
+    Ok(())
+}
+
+// Status update functions for CRDs
+pub fn build_status_update(recommendation: &Recommendation) -> String {
+    let timestamp = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC");
+    format!(
+        "🚨 INSIGHT: {} | 💡 ACTION: {} | 🔍 EVIDENCE: {} | ⚡ PRIORITY: {} | 🕐 UPDATED: {}",
+        recommendation.insight,
+        recommendation.suggested_action,
+        recommendation.kernel_evidence,
+        recommendation.priority,
+        timestamp
+    )
+}
+
+pub fn build_status_update_no_action(message: &str) -> String {
+    let timestamp = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC");
+    format!(
+        "✅ STATUS: {} - System is healthy | 🕐 UPDATED: {}",
+        message,
+        timestamp
+    )
+}
+
+// Placeholder for actual K8s status update (will implement when we have K8s access)
+pub async fn update_kernel_whisper_status(
+    _client: &Client,
+    _kw: &KernelWhisper,
+    _status_message: &str,
+) -> Result<(), Error> {
+    // TODO: Implement actual K8s status update
+    // This would update the KernelWhisper CRD status field with the status_message
+    info!("Would update CRD status with: {}", _status_message);
     Ok(())
 }
 

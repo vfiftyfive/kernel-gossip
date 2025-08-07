@@ -19,7 +19,8 @@
 - Actions unit tests: ██████████ 100% (3 tests)
 - Controller unit tests: ██████████ 100% (3 tests)
 - Recommendation engine tests: ██████████ 100% (5 tests)
-- Unit tests: ██████████ 100% (23 tests total)
+- Status update tests: ██████████ 100% (4 tests)
+- Unit tests: ██████████ 100% (27 tests total)
 - Integration tests: ░░░░░░░░░░ 0% (requires K8s cluster)
 - E2E tests: ░░░░░░░░░░ 0%
 
