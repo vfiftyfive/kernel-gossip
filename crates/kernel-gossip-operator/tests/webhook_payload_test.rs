@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod webhook_tests {
+mod webhook_payload_tests {
     use kernel_gossip_operator::webhook::PixieWebhookPayload;
     use serde_json::json;
 

@@ -1,5 +1,5 @@
 use axum::{
-    extract::Json,
+    extract::{Json, State},
     http::{StatusCode, HeaderMap},
     response::{IntoResponse, Response},
     routing::post,
@@ -7,6 +7,8 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
+use kube::Client;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -44,12 +46,14 @@ struct WebhookResponse {
     message: String,
 }
 
-pub fn create_webhook_router() -> Router {
+pub fn create_webhook_router(client: Arc<Client>) -> Router {
     Router::new()
         .route("/webhook/pixie", post(handle_pixie_webhook))
+        .with_state(client)
 }
 
 async fn handle_pixie_webhook(
+    State(client): State<Arc<Client>>,
     headers: HeaderMap,
     Json(payload): Json<PixieWebhookPayload>,
 ) -> Result<Json<WebhookResponse>, WebhookError> {
@@ -68,14 +72,34 @@ async fn handle_pixie_webhook(
                 "Received pod creation event for {}/{}",
                 data.namespace, data.pod_name
             );
-            // TODO: Create PodBirthCertificate CRD
+            
+            // Create PodBirthCertificate CRD
+            match crate::actions::create_pod_birth_certificate(&client, &data).await {
+                Ok(pbc) => {
+                    info!("Successfully created PodBirthCertificate: {:?}", pbc.metadata.name);
+                }
+                Err(e) => {
+                    error!("Failed to create PodBirthCertificate: {}", e);
+                    return Err(WebhookError(format!("Failed to create CRD: {e}")));
+                }
+            }
         }
         PixieWebhookPayload::CpuThrottle(data) => {
             info!(
                 "Received CPU throttle event for {}/{}: {}%",
                 data.namespace, data.pod_name, data.throttle_percentage
             );
-            // TODO: Create KernelWhisper CRD
+            
+            // Create KernelWhisper CRD
+            match crate::actions::create_kernel_whisper(&client, &data).await {
+                Ok(kw) => {
+                    info!("Successfully created KernelWhisper: {:?}", kw.metadata.name);
+                }
+                Err(e) => {
+                    error!("Failed to create KernelWhisper: {}", e);
+                    return Err(WebhookError(format!("Failed to create CRD: {e}")));
+                }
+            }
         }
     }
 

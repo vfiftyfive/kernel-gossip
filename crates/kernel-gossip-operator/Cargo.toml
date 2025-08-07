@@ -17,6 +17,7 @@ tracing-subscriber = { workspace = true }
 axum = { workspace = true }
 tower = { workspace = true }
 futures = { workspace = true }
+chrono = { workspace = true }
 
 [dev-dependencies]
 axum-test = "14.0"

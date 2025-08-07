@@ -77,6 +77,7 @@ mod server_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Requires K8s cluster"]
     async fn test_server_creation() {
         // Set required env vars
         std::env::set_var("PIXIE_API_KEY", "test-key-create");

@@ -3,11 +3,17 @@ use std::net::SocketAddr;
 use crate::config::Config;
 use tokio::net::TcpListener;
 use axum::serve::Serve;
+use kube::Client;
+use std::sync::Arc;
 
 pub async fn create_server() -> anyhow::Result<Serve<Router, Router>> {
     let config = Config::from_env()?;
     
-    let webhook_routes = crate::webhook::create_webhook_router();
+    // Create K8s client
+    let client = Client::try_default().await?;
+    let client = Arc::new(client);
+    
+    let webhook_routes = crate::webhook::create_webhook_router(client);
     
     let app = Router::new()
         .route("/health", get(health_handler))

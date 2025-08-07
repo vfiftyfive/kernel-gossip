@@ -19,9 +19,10 @@ Main operator that processes Pixie webhooks and manages CRDs
 - Health/metrics endpoints: ██████████ 100%
 - Webhook handler: ██████████ 100%
 - Webhook payload types: ██████████ 100%
+- CRD creation actions: ██████████ 100%
 - CRD controller: ░░░░░░░░░░ 0%
 - Decision engine: ░░░░░░░░░░ 0%
-- Actions: ░░░░░░░░░░ 0%
+- Remediation actions: ░░░░░░░░░░ 0%
 
 ## 🧪 Test Requirements
 - Unit tests for each component
