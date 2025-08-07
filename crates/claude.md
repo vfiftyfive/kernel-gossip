@@ -12,7 +12,7 @@
 
 ## 📊 Crate Status
 - kernel-gossip-types: ██████████ 100% ✅
-- kernel-gossip-operator: ░░░░░░░░░░ 0%
+- kernel-gossip-operator: ████░░░░░░ 40%
 - kernel-gossip-e2e: ░░░░░░░░░░ 0%
 
 ## 🧪 Test Strategy

@@ -34,5 +34,8 @@ Main operator that processes Pixie webhooks and manages CRDs
 - [x] Create config module with tests
 - [x] Implement basic server with tests
 - [x] Add health/metrics endpoints
-- [ ] Create webhook handler test
-- [ ] Implement webhook handler
+- [x] Create webhook handler test
+- [x] Implement webhook handler
+- [x] Implement CRD creation actions
+- [ ] Create CRD controller test
+- [ ] Implement CRD controllers

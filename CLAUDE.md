@@ -10,44 +10,56 @@ Transform kernel whispers into Kubernetes wisdom through Pixie-powered eBPF obse
 4. **Update Progress**: Update ALL relevant claude.md files after EVERY step
 
 ## 📊 Current Status
-**Day**: 1 of 20
+**Day**: 2 of 20
 **Phase**: Operator Core (Phase 4)
-**Current Task**: Starting operator implementation with config and basic server
-**Active Files**: crates/kernel-gossip-operator/src/config.rs
+**Current Task**: CRD Controller implementation
+**Active Files**: crates/kernel-gossip-operator/src/crd/
 **Blocked**: None
-**Last Update**: 2025-07-26 01:15
+**Last Update**: 2025-08-07 (continuing from previous session)
 **Repository**: https://github.com/vfiftyfive/kernel-gossip
 
 ## Progress Tracker
 - Repository Setup: ██████████ 100% ✅
 - CRD Types: ██████████ 100% ✅
 - PxL Scripts: █████░░░░░ 50%
-- Operator Core: ░░░░░░░░░░ 0%
+- Operator Core: ████░░░░░░ 40%
+  - Config: ✅
+  - Server: ✅
+  - Webhook: ✅
+  - CRD Actions: ✅
+  - Controllers: 🚧
 - Integration Tests: ░░░░░░░░░░ 0%
 - E2E Tests: ░░░░░░░░░░ 0%
 - Demo Scenarios: ░░░░░░░░░░ 0%
 
 ## Current Sprint Tasks
 - [x] Create all directories
-- [ ] Create all claude.md files
+- [x] Create all claude.md files
 - [x] Initialize Rust workspace
-- [x] Create first failing test
+- [x] Implement operator config and server
+- [x] Implement webhook handler
+- [x] Implement CRD creation actions
+- [ ] Implement CRD controllers
+- [ ] Implement decision engine
 
 ## Environment Setup
-- GKE Cluster: Available
+- GKE Cluster: Available (not connected in current session)
 - Pixie: Installed
 - Namespace: kernel-gossip
-- KUBECONFIG: Set
+- KUBECONFIG: Not set in current environment
 
 ## Completed Steps
 - [x] Created directory structure
 - [x] Initialized Rust workspace
 - [x] Implemented PodBirthCertificate with strict TDD
-  - [x] Wrote failing tests first
-  - [x] Implemented minimal code to pass
-  - [x] All quality gates passing (fmt, clippy, test)
 - [x] Created GitHub repository
-- [ ] Created all claude.md context files
+- [x] Created all claude.md context files
+- [x] Implemented KernelWhisper type
+- [x] Implemented PxL scripts (50%)
+- [x] Implemented operator config module
+- [x] Implemented basic server with health/metrics
+- [x] Implemented webhook handler with payload types
+- [x] Implemented CRD creation actions
 
 ## Daily Log
 ### Day 1 - 2025-07-25
@@ -57,12 +69,16 @@ Transform kernel whispers into Kubernetes wisdom through Pixie-powered eBPF obse
 - Created GitHub repository: https://github.com/vfiftyfive/kernel-gossip
 - Created comprehensive claude.md files for context preservation
 - Implemented KernelWhisper type with strict TDD
-  - Wrote failing tests first
-  - Implemented minimal code to pass
-  - Fixed clippy warnings
-  - All quality gates passing
 - CRD Types phase COMPLETE (100%)
 - PxL Scripts phase at 50%
-  - Implemented cpu_throttle_detector.pxl
-  - Implemented pod_creation_trace.pxl
 - Starting Operator Core phase
+
+### Day 2 - 2025-08-07
+- Implemented operator config module with env-based configuration
+- Created basic Axum server with health and metrics endpoints
+- Implemented webhook handler with content-type validation
+- Created webhook payload types (PodCreation, CpuThrottle)
+- Implemented CRD creation actions (build and create functions)
+- Integrated K8s client into webhook for automatic CRD creation
+- All tests passing (17 tests), clippy-clean
+- Ready to implement CRD controllers
