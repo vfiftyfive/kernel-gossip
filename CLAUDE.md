@@ -29,7 +29,7 @@ Transform kernel whispers into Kubernetes wisdom through Pixie-powered eBPF obse
 ## 📊 Current Status
 **Day**: 2 of 20
 **Phase**: Operator Core (Phase 4)
-**Current Task**: CRD Controller implementation
+**Current Task**: CRD Status Updates with Insights
 **Active Files**: crates/kernel-gossip-operator/src/crd/
 **Blocked**: None
 **Last Update**: 2025-08-07 (continuing from previous session)
@@ -58,8 +58,9 @@ Transform kernel whispers into Kubernetes wisdom through Pixie-powered eBPF obse
 - [x] Implement operator config and server
 - [x] Implement webhook handler
 - [x] Implement CRD creation actions
-- [ ] Implement CRD controllers
-- [ ] Implement recommendation engine
+- [x] Implement CRD controllers
+- [x] Implement recommendation engine
+- [ ] Add CRD status updates with insights
 
 ## Environment Setup
 - GKE Cluster: Available (not connected in current session)
@@ -99,5 +100,7 @@ Transform kernel whispers into Kubernetes wisdom through Pixie-powered eBPF obse
 - Created webhook payload types (PodCreation, CpuThrottle)
 - Implemented CRD creation actions (build and create functions)
 - Integrated K8s client into webhook for automatic CRD creation
-- All tests passing (17 tests), clippy-clean
-- Ready to implement CRD controllers
+- Implemented CRD controllers with reconciliation logic
+- Implemented recommendation engine with TDD (5 tests)
+- All tests passing (23 tests), clippy-clean
+- Ready to implement CRD status updates

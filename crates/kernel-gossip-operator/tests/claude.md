@@ -13,12 +13,13 @@
 - Test concurrent operations
 
 ## 📊 Test Status
-- Config tests: ██████████ 100%
-- Server tests: ██████████ 100%
-- Webhook payload tests: ██████████ 100%
-- Actions unit tests: ██████████ 100%
-- Controller unit tests: ██████████ 100%
-- Unit tests: ████████░░ 80%
+- Config tests: ██████████ 100% (3 tests)
+- Server tests: ██████████ 100% (2 tests, 1 ignored)
+- Webhook payload tests: ██████████ 100% (3 tests)
+- Actions unit tests: ██████████ 100% (3 tests)
+- Controller unit tests: ██████████ 100% (3 tests)
+- Recommendation engine tests: ██████████ 100% (5 tests)
+- Unit tests: ██████████ 100% (23 tests total)
 - Integration tests: ░░░░░░░░░░ 0% (requires K8s cluster)
 - E2E tests: ░░░░░░░░░░ 0%
 
