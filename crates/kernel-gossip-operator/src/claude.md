@@ -8,7 +8,7 @@ src/
 ├── config.rs        # Configuration
 ├── webhook/         # Webhook handlers
 ├── crd/            # CRD controllers
-├── decision/       # Decision engine
+├── decision/       # Recommendation engine
 ├── actions/        # K8s actions
 └── metrics.rs      # Prometheus metrics
 ```
@@ -18,7 +18,7 @@ src/
 2. Health endpoint
 3. Webhook handler
 4. CRD controller
-5. Decision engine
+5. Recommendation engine
 6. Actions
 
 ## 📊 Current Implementation
@@ -29,5 +29,5 @@ src/
 - [x] webhook/mod.rs - payload types and handler
 - [x] actions/mod.rs - CRD creation actions
 - [x] crd/mod.rs - CRD controllers with reconciliation
-- [ ] decision/mod.rs - decision engine
+- [ ] decision/mod.rs - recommendation engine
 - [ ] metrics.rs - Prometheus metrics

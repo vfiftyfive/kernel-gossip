@@ -24,21 +24,21 @@ mod controller_unit_tests {
         kw.spec.severity = Severity::Critical;
         let action = reconcile_logic_kernel_whisper(&kw);
         assert_eq!(action.severity_level(), "critical");
-        assert!(action.requires_remediation());
+        assert!(action.requires_attention());
         
         // Test Warning severity
         let mut kw = KernelWhisper::create("warning-pod", "default", 65.0, 70.0);
         kw.spec.severity = Severity::Warning;
         let action = reconcile_logic_kernel_whisper(&kw);
         assert_eq!(action.severity_level(), "warning");
-        assert!(!action.requires_remediation());
+        assert!(!action.requires_attention());
         
         // Test Info severity
         let mut kw = KernelWhisper::create("info-pod", "default", 15.0, 50.0);
         kw.spec.severity = Severity::Info;
         let action = reconcile_logic_kernel_whisper(&kw);
         assert_eq!(action.severity_level(), "info");
-        assert!(!action.requires_remediation());
+        assert!(!action.requires_attention());
     }
 
     #[test]

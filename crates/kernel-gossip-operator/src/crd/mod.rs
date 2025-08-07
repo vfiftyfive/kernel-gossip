@@ -19,7 +19,7 @@ pub fn reconcile_logic_pod_birth(pbc: &PodBirthCertificate) -> Result<(), String
 
 pub struct ReconcileAction {
     severity: String,
-    needs_remediation: bool,
+    needs_attention: bool,
 }
 
 impl ReconcileAction {
@@ -27,13 +27,13 @@ impl ReconcileAction {
         &self.severity
     }
     
-    pub fn requires_remediation(&self) -> bool {
-        self.needs_remediation
+    pub fn requires_attention(&self) -> bool {
+        self.needs_attention
     }
 }
 
 pub fn reconcile_logic_kernel_whisper(kw: &KernelWhisper) -> ReconcileAction {
-    let (severity, needs_remediation) = match kw.spec.severity {
+    let (severity, needs_attention) = match kw.spec.severity {
         Severity::Critical => ("critical", true),
         Severity::Warning => ("warning", false),
         Severity::Info => ("info", false),
@@ -41,7 +41,7 @@ pub fn reconcile_logic_kernel_whisper(kw: &KernelWhisper) -> ReconcileAction {
     
     ReconcileAction {
         severity: severity.to_string(),
-        needs_remediation,
+        needs_attention,
     }
 }
 

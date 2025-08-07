@@ -10,8 +10,8 @@ Main operator that processes Pixie webhooks and manages CRDs
 - [x] Metrics endpoint
 - [ ] Webhook server handlers
 - [ ] CRD controllers
-- [ ] Decision engine
-- [ ] Action executors
+- [ ] Recommendation engine
+- [ ] Status updates
 
 ## 📊 Implementation Status
 - Basic server: ██████████ 100%
@@ -21,8 +21,8 @@ Main operator that processes Pixie webhooks and manages CRDs
 - Webhook payload types: ██████████ 100%
 - CRD creation actions: ██████████ 100%
 - CRD controllers: ██████████ 100%
-- Decision engine: ░░░░░░░░░░ 0%
-- Remediation actions: ░░░░░░░░░░ 0%
+- Recommendation engine: ░░░░░░░░░░ 0%
+- Status updates: ░░░░░░░░░░ 0%
 
 ## 🧪 Test Requirements
 - Unit tests for each component

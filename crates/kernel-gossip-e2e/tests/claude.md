@@ -9,7 +9,7 @@
 ## 🧪 Success Criteria
 - Demo 1: < 10s total time
 - Demo 2: Latency improvement > 50%
-- Load test: All pods remediated
+- Load test: All pods monitored
 - Chaos test: Recovery < 30s
 
 ## 📊 E2E Status

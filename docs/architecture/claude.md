@@ -14,4 +14,4 @@
 ## 🎯 Current Decisions Needed
 - [ ] Webhook payload format
 - [ ] CRD status update strategy
-- [ ] Remediation action limits
+- [ ] Recommendation update frequency

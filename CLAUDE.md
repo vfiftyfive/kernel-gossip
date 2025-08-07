@@ -45,8 +45,8 @@ Transform kernel whispers into Kubernetes wisdom through Pixie-powered eBPF obse
   - Webhook: ✅
   - CRD Actions: ✅
   - Controllers: ✅
-  - Decision Engine: 🚧
-  - Remediation: 🚧
+  - Recommendation Engine: 🚧
+  - Recommendations: 🚧
 - Integration Tests: ░░░░░░░░░░ 0%
 - E2E Tests: ░░░░░░░░░░ 0%
 - Demo Scenarios: ░░░░░░░░░░ 0%
@@ -59,7 +59,7 @@ Transform kernel whispers into Kubernetes wisdom through Pixie-powered eBPF obse
 - [x] Implement webhook handler
 - [x] Implement CRD creation actions
 - [ ] Implement CRD controllers
-- [ ] Implement decision engine
+- [ ] Implement recommendation engine
 
 ## Environment Setup
 - GKE Cluster: Available (not connected in current session)
