@@ -17,7 +17,8 @@ Main operator that processes Pixie webhooks and manages CRDs
 - Basic server: ██████████ 100%
 - Config module: ██████████ 100%
 - Health/metrics endpoints: ██████████ 100%
-- Webhook handler: ░░░░░░░░░░ 0%
+- Webhook handler: ██████████ 100%
+- Webhook payload types: ██████████ 100%
 - CRD controller: ░░░░░░░░░░ 0%
 - Decision engine: ░░░░░░░░░░ 0%
 - Actions: ░░░░░░░░░░ 0%

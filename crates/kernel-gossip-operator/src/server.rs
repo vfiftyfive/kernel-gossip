@@ -7,8 +7,11 @@ use axum::serve::Serve;
 pub async fn create_server() -> anyhow::Result<Serve<Router, Router>> {
     let config = Config::from_env()?;
     
+    let webhook_routes = crate::webhook::create_webhook_router();
+    
     let app = Router::new()
-        .route("/health", get(health_handler));
+        .route("/health", get(health_handler))
+        .merge(webhook_routes);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], config.webhook_port));
     let listener = TcpListener::bind(addr).await?;

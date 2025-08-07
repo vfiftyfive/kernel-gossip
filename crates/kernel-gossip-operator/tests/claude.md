@@ -13,9 +13,11 @@
 - Test concurrent operations
 
 ## 📊 Test Status
-- Unit tests: ░░░░░░░░░░ 0%
+- Config tests: ██████████ 100%
+- Server tests: ██████████ 100%
+- Webhook tests: ██████████ 100%
+- Unit tests: ███░░░░░░░ 30%
 - Integration tests: ░░░░░░░░░░ 0%
-- Webhook tests: ░░░░░░░░░░ 0%
 - Controller tests: ░░░░░░░░░░ 0%
 
 ## 🔧 Test Utilities

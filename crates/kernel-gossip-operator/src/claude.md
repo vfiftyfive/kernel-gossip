@@ -26,4 +26,7 @@ src/
 - [x] config.rs - env config
 - [x] server.rs - basic server with health/metrics
 - [x] health endpoint
-- [ ] webhook/mod.rs
+- [x] webhook/mod.rs - payload types and handler
+- [ ] crd/mod.rs - CRD controllers
+- [ ] decision/mod.rs - decision engine
+- [ ] actions/mod.rs - K8s actions
