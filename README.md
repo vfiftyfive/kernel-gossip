@@ -4,14 +4,14 @@
 
 ## 🎯 Project Mission
 
-Kernel Gossip is a Kubernetes operator that reveals the hidden dialogue between Kubernetes and the Linux kernel using Pixie's eBPF capabilities. It exposes what really happens when pods are created, detects when metrics lie, and takes automatic remediation actions based on kernel truth.
+Kernel Gossip is a Kubernetes operator that reveals the hidden dialogue between Kubernetes and the Linux kernel using Pixie's eBPF capabilities. It exposes what really happens when pods are created, detects when metrics lie, and provides actionable insights based on kernel truth.
 
 ## 🚀 Features
 
 - **Pod Birth Certificates**: Track the complete kernel cascade when pods are created (cgroups, namespaces, syscalls)
 - **CPU Throttle Detection**: Detect when metrics show low CPU usage but kernel shows high throttling
-- **Automatic Remediation**: Take actions based on kernel truth rather than averaged metrics
-- **Real-time Visualization**: See kernel events as they happen
+- **Actionable Insights**: Provide recommendations based on kernel truth rather than averaged metrics
+- **Real-time Visibility**: See kernel events as they happen with educational context
 
 ## 📋 Prerequisites
 

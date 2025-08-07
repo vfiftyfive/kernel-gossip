@@ -113,10 +113,10 @@ pub async fn reconcile_kernel_whisper(
                 kw.spec.pod_name, kw.spec.kernel_truth.throttled_percent
             );
             
-            // TODO: Implement actual remediation
-            // - Increase CPU limits
-            // - Alert operators
-            // - Scale deployment
+            // TODO: Add recommendations to CRD status
+            // - Suggest: "Increase CPU limits by 50% to prevent throttling"
+            // - Evidence: "Kernel shows {}ms of throttled time in last period"
+            // - Impact: "Application response time increased by {}%"
         }
         Severity::Warning => {
             warn!(

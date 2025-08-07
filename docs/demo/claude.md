@@ -13,7 +13,8 @@
 
 ## 📊 Demo 2: CPU Throttle Detection
 **Goal**: Show metrics lying about CPU usage
-**Wow**: "From 500ms to 50ms automatically!"
+**Wow**: "Metrics show 30% CPU but kernel shows 85% throttling!"
+**Insight**: "Recommended: Increase CPU limit from 500m to 1000m"
 **Status**: ⏳ Scripts pending
 
 ## 🔧 Demo Environment

@@ -1,5 +1,22 @@
 # Kernel Gossip: Master Progress Tracker
 
+## 📢 Talk Abstract
+**Your infrastructure is talking behind your back!** This talk unveils the hidden dialogue between Kubernetes and Linux using eBPF superpowers. First, I'll expose what really happens when pods are scheduled: the cascade of cgroups, namespaces, and resource controls that Kubernetes triggers in the kernel. Then we'll reverse the flow, capturing real-time kernel signals and bubbling them up for immediate action. Using a lightweight Rust+eBPF observer, I'll demonstrate how to transform this eavesdropping into practical magic: infrastructure that responds to kernel truth, not lagging metrics. Come for the educational journey from abstraction to reality, stay for the eBPF wizardry that makes your cluster smarter.
+
+## 🎯 Benefits to the Ecosystem
+**Takeaways:**
+- Decode the real translation between Kubernetes abstractions and kernel operations
+- Master practical eBPF techniques for observing system events
+- Build infrastructure that reacts to ground truth, not delayed indicators
+
+This talk bridges a critical knowledge gap in the cloud-native ecosystem by demystifying the interface between Kubernetes abstractions and Linux kernel realities. By making these complex interactions visible and understandable, we enable operators and developers to build more reliable, performant, and secure systems based on ground truth rather than approximations.
+
+- Democratizes systems knowledge by making kernel interactions accessible without requiring deep expertise
+- Enables better troubleshooting through awareness of how Kubernetes decisions manifest at the kernel level
+- Fosters cross-domain collaboration between application developers and infrastructure teams
+- Builds practical eBPF skills that apply across observability, security, and networking domains
+- Accelerates innovation by showing how to safely extend Kubernetes with kernel-aware capabilities
+
 ## 🎯 Project Mission
 Transform kernel whispers into Kubernetes wisdom through Pixie-powered eBPF observation.
 

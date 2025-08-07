@@ -1,16 +1,15 @@
 # Actions Module Guide
 
 ## 🎯 Purpose
-Execute actions on Kubernetes resources (CRD creation and remediation)
+Create CRDs and annotations to make kernel truth visible
 
 ## 📋 Available Actions
 - [x] Create PodBirthCertificate CRD
 - [x] Create KernelWhisper CRD
-- [ ] Increase CPU limits
-- [ ] Increase memory limits
-- [ ] Restart pod
-- [ ] Scale deployment
-- [ ] Create alert
+- [ ] Add recommendation annotations to pods
+- [ ] Update CRD status with insights
+- [ ] Create events for visibility
+- [ ] Add metrics for kernel truth
 
 ## 🧪 Test Requirements
 - CRD creation tests ✅
