@@ -13,9 +13,10 @@
 - Quick to manifest issues
 
 ## 📊 Workload Status
-- CPU stress: ░░░░░░░░░░ 0%
+- CPU stress: ██████████ 100% ✅
 - Memory leak: ░░░░░░░░░░ 0%
 - Network flood: ░░░░░░░░░░ 0%
+- Nginx demo: ██████████ 100% ✅
 
 ## 🔧 Stress Pattern
 ```yaml

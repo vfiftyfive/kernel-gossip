@@ -11,8 +11,8 @@
 - Status subresource
 
 ## 📊 Definition Status
-- PodBirthCertificate: ░░░░░░░░░░ 0%
-- KernelWhisper: ░░░░░░░░░░ 0%
+- PodBirthCertificate: ██████████ 100% ✅
+- KernelWhisper: ██████████ 100% ✅
 
 ## 🔧 CRD Template
 ```yaml

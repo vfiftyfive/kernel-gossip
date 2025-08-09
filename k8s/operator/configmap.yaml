@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kernel-gossip-operator-config
+  namespace: kernel-gossip
+data:
+  # Operator configuration
+  OPERATOR_PORT: "8080"
+  OPERATOR_LOG_LEVEL: "info"
+  
+  # Pixie webhook configuration
+  WEBHOOK_PATH: "/webhook/pixie"
+  
+  # Controller configuration
+  RECONCILE_INTERVAL: "300"  # 5 minutes default requeue
+  
+  # Recommendation thresholds
+  CPU_THROTTLE_CRITICAL: "80.0"
+  CPU_THROTTLE_WARNING: "40.0"

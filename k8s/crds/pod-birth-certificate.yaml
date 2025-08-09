@@ -1,0 +1,121 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: podbirthcertificates.kernel.gossip.io
+spec:
+  group: kernel.gossip.io
+  scope: Namespaced
+  names:
+    kind: PodBirthCertificate
+    listKind: PodBirthCertificateList
+    plural: podbirthcertificates
+    singular: podbirthcertificate
+    shortNames:
+    - pbc
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            required:
+            - pod_name
+            - namespace
+            - timeline
+            - kernel_stats
+            properties:
+              pod_name:
+                type: string
+                description: Name of the pod being tracked
+              namespace:
+                type: string
+                description: Namespace of the pod
+              timeline:
+                type: array
+                description: Timeline of kernel events during pod creation
+                items:
+                  type: object
+                  required:
+                  - timestamp_ms
+                  - actor
+                  - action
+                  properties:
+                    timestamp_ms:
+                      type: integer
+                      format: int64
+                      description: Timestamp in milliseconds
+                    actor:
+                      type: string
+                      enum:
+                      - scheduler
+                      - kubelet
+                      - runtime
+                      - kernel
+                      description: Component that performed the action
+                    action:
+                      type: string
+                      description: Action taken by the actor
+                    details:
+                      type: string
+                      description: Optional details about the action
+                      nullable: true
+              kernel_stats:
+                type: object
+                description: Aggregate kernel statistics for pod creation
+                required:
+                - total_syscalls
+                - namespaces_created
+                - cgroup_writes
+                - iptables_rules
+                - total_duration_ms
+                properties:
+                  total_syscalls:
+                    type: integer
+                    format: int32
+                    description: Total number of syscalls made
+                  namespaces_created:
+                    type: integer
+                    format: int32
+                    description: Number of namespaces created
+                  cgroup_writes:
+                    type: integer
+                    format: int32
+                    description: Number of cgroup writes
+                  iptables_rules:
+                    type: integer
+                    format: int32
+                    description: Number of iptables rules added
+                  total_duration_ms:
+                    type: integer
+                    format: int64
+                    description: Total duration in milliseconds
+          status:
+            type: object
+            description: Status of the PodBirthCertificate
+            properties:
+              message:
+                type: string
+                description: Human-readable status message
+              lastUpdated:
+                type: string
+                format: date-time
+                description: Last time the status was updated
+    subresources:
+      status: {}
+    additionalPrinterColumns:
+    - name: Pod
+      type: string
+      jsonPath: .spec.pod_name
+    - name: Syscalls
+      type: integer
+      jsonPath: .spec.kernel_stats.total_syscalls
+    - name: Duration
+      type: integer
+      jsonPath: .spec.kernel_stats.total_duration_ms
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp

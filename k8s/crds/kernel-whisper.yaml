@@ -1,0 +1,106 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: kernelwhispers.kernel.gossip.io
+spec:
+  group: kernel.gossip.io
+  scope: Namespaced
+  names:
+    kind: KernelWhisper
+    listKind: KernelWhisperList
+    plural: kernelwhispers
+    singular: kernelwhisper
+    shortNames:
+    - kw
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            required:
+            - pod_name
+            - namespace
+            - detected_at
+            - kernel_truth
+            - metrics_lie
+            - severity
+            properties:
+              pod_name:
+                type: string
+                description: Name of the pod experiencing CPU throttling
+              namespace:
+                type: string
+                description: Namespace of the pod
+              detected_at:
+                type: string
+                description: Timestamp when throttling was detected
+              kernel_truth:
+                type: object
+                description: What the kernel actually reports
+                required:
+                - throttled_percent
+                - actual_cpu_cores
+                properties:
+                  throttled_percent:
+                    type: number
+                    format: double
+                    description: Percentage of time the pod was throttled
+                  actual_cpu_cores:
+                    type: number
+                    format: double
+                    description: Actual CPU cores used by the pod
+              metrics_lie:
+                type: object
+                description: What Kubernetes metrics report
+                required:
+                - cpu_percent
+                - reported_status
+                properties:
+                  cpu_percent:
+                    type: number
+                    format: double
+                    description: CPU percentage reported by metrics
+                  reported_status:
+                    type: string
+                    description: Status reported by metrics (usually "Healthy")
+              severity:
+                type: string
+                enum:
+                - critical
+                - warning
+                - info
+                description: Severity of the CPU throttling
+          status:
+            type: object
+            description: Status of the KernelWhisper with recommendations
+            properties:
+              message:
+                type: string
+                description: Human-readable status message with insights and recommendations
+              lastUpdated:
+                type: string
+                format: date-time
+                description: Last time the status was updated
+    subresources:
+      status: {}
+    additionalPrinterColumns:
+    - name: Pod
+      type: string
+      jsonPath: .spec.pod_name
+    - name: Throttled%
+      type: number
+      jsonPath: .spec.kernel_truth.throttled_percent
+    - name: Metrics%
+      type: number
+      jsonPath: .spec.metrics_lie.cpu_percent
+    - name: Severity
+      type: string
+      jsonPath: .spec.severity
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp

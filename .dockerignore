@@ -1,0 +1,33 @@
+# Ignore target directory
+target/
+**/target/
+
+# Ignore git files
+.git/
+.gitignore
+
+# Ignore docs and non-essential files
+docs/
+*.md
+LICENSE
+
+# Ignore k8s manifests
+k8s/
+
+# Ignore CI/CD files
+ci/
+.github/
+
+# Ignore test files in production build
+**/tests/
+**/test_data/
+
+# Ignore development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore macOS files
+.DS_Store
