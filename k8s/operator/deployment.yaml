@@ -23,7 +23,7 @@ spec:
       serviceAccountName: kernel-gossip-operator
       containers:
       - name: operator
-        image: kernel-gossip-operator:latest  # TODO: Update with actual image
+        image: gcr.io/scaleops-dev-rel/kernel-gossip-operator:latest  # TODO: Update with actual image
         imagePullPolicy: Always
         ports:
         - name: webhook
@@ -50,6 +50,20 @@ spec:
               key: WEBHOOK_PATH
         - name: RUST_LOG
           value: kernel_gossip_operator=info,kube=info
+        - name: PIXIE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kernel-gossip-operator-pixie
+              key: PIXIE_API_KEY
+        - name: PIXIE_CLUSTER_ID
+          valueFrom:
+            secretKeyRef:
+              name: kernel-gossip-operator-pixie
+              key: PIXIE_CLUSTER_ID
+        - name: WEBHOOK_PORT
+          value: "8080"
+        - name: METRICS_PORT
+          value: "9090"
         livenessProbe:
           httpGet:
             path: /health

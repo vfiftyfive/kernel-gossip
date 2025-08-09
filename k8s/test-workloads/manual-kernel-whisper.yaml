@@ -1,0 +1,16 @@
+apiVersion: kernel.gossip.io/v1alpha1
+kind: KernelWhisper
+metadata:
+  name: cpu-stress-demo-test
+  namespace: kernel-gossip
+spec:
+  pod_name: cpu-stress-demo
+  namespace: kernel-gossip
+  detected_at: "2025-08-09T17:00:00Z"
+  kernel_truth:
+    throttled_percent: 85.5
+    actual_cpu_cores: 0.5
+  metrics_lie:
+    cpu_percent: 45.0
+    reported_status: "healthy"
+  severity: "critical"

@@ -26,17 +26,17 @@ gcloud container clusters create $CLUSTER_NAME \
     --machine-type=$MACHINE_TYPE \
     --disk-type=pd-standard \
     --disk-size=50 \
-    --no-enable-cloud-logging \
-    --enable-cloud-monitoring \
+    --logging=NONE \
+    --monitoring=SYSTEM \
     --maintenance-window-start="2025-08-10T03:00:00Z" \
-    --maintenance-window-end="2025-08-10T07:00:00Z" \
-    --maintenance-window-recurrence="FREQ=WEEKLY;BYDAY=SU" \
+    --maintenance-window-end="2025-08-10T09:00:00Z" \
+    --maintenance-window-recurrence="FREQ=DAILY" \
     --enable-ip-alias \
     --network="default" \
     --subnetwork="default" \
     --default-max-pods-per-node="110" \
     --addons=HorizontalPodAutoscaling,HttpLoadBalancing \
-    --no-enable-autoupgrade \
+    --enable-autoupgrade \
     --enable-autorepair \
     --max-surge-upgrade=1 \
     --max-unavailable-upgrade=0 \

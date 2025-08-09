@@ -1,5 +1,5 @@
 # Multi-stage build for optimal image size
-FROM rust:1.75 as builder
+FROM rust:1.81 AS builder
 
 # Create app directory
 WORKDIR /app
