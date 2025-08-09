@@ -1,0 +1,122 @@
+import px
+
+# Configuration from environment - NO HARDCODING
+WEBHOOK_URL = px.endpoint_config.get("WEBHOOK_URL", "http://kernel-gossip-operator:8080/webhook/pixie")
+PACKET_DROP_THRESHOLD = px.parse_float(px.endpoint_config.get("PACKET_DROP_THRESHOLD", "1.0"))
+RETRANSMIT_THRESHOLD = px.parse_float(px.endpoint_config.get("RETRANSMIT_THRESHOLD", "5.0"))
+LATENCY_THRESHOLD_MS = px.parse_float(px.endpoint_config.get("LATENCY_THRESHOLD_MS", "100.0"))
+
+def network_issue_finder():
+    """
+    Detects network issues using REAL kernel network statistics.
+    Identifies packet drops, retransmissions, and high latency.
+    """
+    # Get REAL network data from network_stats table
+    df = px.DataFrame('network_stats')
+    
+    # Must have pod context - filter out empty pod names
+    df = df[df.pod_name != ""]
+    
+    # Calculate packet drop percentage
+    # rx_drops and tx_drops are packets dropped by kernel
+    df.total_packets = df.rx_packets + df.tx_packets
+    df.total_drops = df.rx_drops + df.tx_drops
+    df.packet_drop_pct = px.select(
+        df.total_packets > 0,
+        (df.total_drops / df.total_packets) * 100.0,
+        0.0
+    )
+    
+    # Get connection-level metrics for TCP retransmits and latency
+    conn_df = px.DataFrame('conn_stats')
+    conn_df = conn_df[conn_df.pod_name != ""]
+    
+    # Calculate retransmission rate
+    conn_df.total_sent = conn_df.bytes_sent
+    conn_df.retransmit_pct = px.select(
+        conn_df.total_sent > 0,
+        (conn_df.retransmits / conn_df.total_sent) * 100.0,
+        0.0
+    )
+    
+    # Calculate average latency in milliseconds
+    conn_df.avg_latency_ms = conn_df.latency_ns / 1000000.0
+    
+    # Count connection errors (reset, timeout, refused)
+    conn_df.connection_errors = conn_df.conn_failures + conn_df.conn_resets
+    
+    # Aggregate connection stats by pod
+    conn_agg = conn_df.groupby(['pod_name', 'namespace']).agg(
+        retransmit_pct_max=('retransmit_pct', px.max),
+        avg_latency_ms_p95=('avg_latency_ms', px.percentile(95)),
+        connection_errors_sum=('connection_errors', px.sum)
+    )
+    
+    # Join network and connection data
+    df = df.merge(
+        conn_agg,
+        on=['pod_name', 'namespace'],
+        how='outer'
+    )
+    
+    # Handle missing values from outer join
+    df.retransmit_pct = px.select(
+        px.is_null(df.retransmit_pct_max),
+        0.0,
+        df.retransmit_pct_max
+    )
+    df.avg_latency_ms = px.select(
+        px.is_null(df.avg_latency_ms_p95),
+        0.0,
+        df.avg_latency_ms_p95
+    )
+    df.connection_errors = px.select(
+        px.is_null(df.connection_errors_sum),
+        0,
+        df.connection_errors_sum
+    )
+    
+    # Filter for pods with network issues
+    df = df[
+        (df.packet_drop_pct > PACKET_DROP_THRESHOLD) |
+        (df.retransmit_pct > RETRANSMIT_THRESHOLD) |
+        (df.avg_latency_ms > LATENCY_THRESHOLD_MS) |
+        (df.connection_errors > 0)
+    ]
+    
+    # Add severity based on network issues
+    df.severity = px.select(
+        (df.packet_drop_pct > 10.0) | (df.retransmit_pct > 20.0) | (df.avg_latency_ms > 500.0), "critical",
+        (df.packet_drop_pct > 5.0) | (df.retransmit_pct > 10.0) | (df.avg_latency_ms > 200.0), "warning",
+        "info"
+    )
+    
+    # Group by pod for final output
+    output = df.groupby(['pod_name', 'namespace']).agg(
+        packet_drop_pct_max=('packet_drop_pct', px.max),
+        retransmit_pct_max=('retransmit_pct', px.max),
+        avg_latency_ms_max=('avg_latency_ms', px.max),
+        connection_errors_sum=('connection_errors', px.sum),
+        severity_max=('severity', px.max)
+    )
+    
+    # Rename columns
+    output.packet_drop_pct = output.packet_drop_pct_max
+    output.retransmit_pct = output.retransmit_pct_max
+    output.avg_latency_ms = output.avg_latency_ms_max
+    output.connection_errors = output.connection_errors_sum
+    output.severity = output.severity_max
+    
+    # Add metadata
+    output.timestamp = px.now()
+    output.cluster = px.vizier_id()
+    
+    # Select final columns
+    output = output[['timestamp', 'cluster', 'pod_name', 'namespace',
+                     'packet_drop_pct', 'retransmit_pct', 'avg_latency_ms',
+                     'connection_errors', 'severity']]
+    
+    return output
+
+# Export to webhook - REAL endpoint configured via environment
+px.export(network_issue_finder(), px.Webhook(url=WEBHOOK_URL))

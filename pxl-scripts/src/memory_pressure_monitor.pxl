@@ -1,0 +1,90 @@
+import px
+
+# Configuration from environment - NO HARDCODING
+WEBHOOK_URL = px.endpoint_config.get("WEBHOOK_URL", "http://kernel-gossip-operator:8080/webhook/pixie")
+MEMORY_PRESSURE_THRESHOLD = px.parse_float(px.endpoint_config.get("MEMORY_PRESSURE_THRESHOLD", "70.0"))
+WARNING_THRESHOLD = px.parse_float(px.endpoint_config.get("WARNING_THRESHOLD", "80.0"))
+CRITICAL_THRESHOLD = px.parse_float(px.endpoint_config.get("CRITICAL_THRESHOLD", "90.0"))
+
+def memory_pressure_monitor():
+    """
+    Detects memory pressure using REAL kernel metrics.
+    Identifies pods experiencing memory constraints before OOM.
+    """
+    # Get REAL memory data from process_stats table
+    df = px.DataFrame('process_stats')
+    
+    # Must have pod context - filter out empty pod names
+    df = df[df.pod_name != ""]
+    
+    # Calculate memory usage percentage
+    # rss_bytes: Resident Set Size (actual memory used)
+    # memory_limit_ns: Memory limit in nanoseconds (if set)
+    df.memory_used_mb = df.rss_bytes / (1024 * 1024)
+    
+    # Get container info for memory limits
+    container_df = px.DataFrame('containers')
+    container_df = container_df[container_df.pod_name != ""]
+    container_df.memory_limit_mb = container_df.memory_limit / (1024 * 1024)
+    
+    # Join to get memory limits
+    df = df.merge(
+        container_df[['pod_name', 'namespace', 'memory_limit_mb']],
+        on=['pod_name', 'namespace'],
+        how='inner'
+    )
+    
+    # Calculate usage percentage (handle unlimited memory)
+    df.memory_usage_pct = px.select(
+        df.memory_limit_mb > 0,
+        (df.memory_used_mb / df.memory_limit_mb) * 100.0,
+        0.0  # No limit set
+    )
+    
+    # Calculate page fault rate (indicator of memory pressure)
+    # major_faults and minor_faults indicate memory access issues
+    df.page_faults_per_sec = (df.major_faults + df.minor_faults) / px.DurationNanos(df.runtime_ns).seconds
+    
+    # Filter for pods with memory pressure
+    # Either high usage percentage OR high page fault rate
+    df = df[
+        (df.memory_usage_pct > MEMORY_PRESSURE_THRESHOLD) |
+        (df.page_faults_per_sec > 100)  # High page fault rate
+    ]
+    
+    # Add severity based on memory usage and page faults
+    df.severity = px.select(
+        (df.memory_usage_pct > CRITICAL_THRESHOLD) | (df.page_faults_per_sec > 1000), "critical",
+        (df.memory_usage_pct > WARNING_THRESHOLD) | (df.page_faults_per_sec > 500), "warning",
+        "info"
+    )
+    
+    # Group by pod for cleaner output
+    output = df.groupby(['pod_name', 'namespace']).agg(
+        memory_used_mb_max=('memory_used_mb', px.max),
+        memory_limit_mb_max=('memory_limit_mb', px.max),
+        memory_usage_pct_max=('memory_usage_pct', px.max),
+        page_faults_per_sec_max=('page_faults_per_sec', px.max),
+        severity_max=('severity', px.max)
+    )
+    
+    # Rename columns
+    output.memory_used_mb = output.memory_used_mb_max
+    output.memory_limit_mb = output.memory_limit_mb_max
+    output.memory_usage_pct = output.memory_usage_pct_max
+    output.page_faults_per_sec = output.page_faults_per_sec_max
+    output.severity = output.severity_max
+    
+    # Add metadata
+    output.timestamp = px.now()
+    output.cluster = px.vizier_id()
+    
+    # Select final columns
+    output = output[['timestamp', 'cluster', 'pod_name', 'namespace',
+                     'memory_usage_pct', 'memory_limit_mb', 'memory_used_mb',
+                     'page_faults_per_sec', 'severity']]
+    
+    return output
+
+# Export to webhook - REAL endpoint configured via environment
+px.export(memory_pressure_monitor(), px.Webhook(url=WEBHOOK_URL))

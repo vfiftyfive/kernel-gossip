@@ -171,5 +171,60 @@ def main():
         sys.exit(1)
 
 
+def validate_memory_pressure_monitor(script_path: str) -> Dict[str, Any]:
+    """Validate memory_pressure_monitor.pxl structure"""
+    with open(script_path, 'r') as f:
+        content = f.read()
+    
+    result = {
+        'columns': [
+            'timestamp', 'cluster', 'pod_name', 'namespace',
+            'memory_usage_pct', 'memory_limit_mb', 'memory_used_mb',
+            'page_faults_per_sec', 'severity'
+        ],
+        'uses_config': 'px.endpoint_config' in content,
+        'has_severity': 'severity' in content and 'px.select' in content,
+        'detects_pressure': 'memory_usage_pct' in content and 'page_faults_per_sec' in content
+    }
+    
+    return result
+
+
+def validate_network_issue_finder(script_path: str) -> Dict[str, Any]:
+    """Validate network_issue_finder.pxl structure"""
+    with open(script_path, 'r') as f:
+        content = f.read()
+    
+    result = {
+        'columns': [
+            'timestamp', 'cluster', 'pod_name', 'namespace',
+            'packet_drop_pct', 'retransmit_pct', 'avg_latency_ms',
+            'connection_errors', 'severity'
+        ],
+        'uses_config': 'px.endpoint_config' in content,
+        'has_severity': 'severity' in content and 'px.select' in content,
+        'detects_network_issues': all(metric in content for metric in [
+            'packet_drop_pct', 'retransmit_pct', 'avg_latency_ms', 'connection_errors'
+        ])
+    }
+    
+    return result
+
+
 if __name__ == "__main__":
+    # Check if running as validator for specific script
+    if len(sys.argv) > 1 and sys.argv[1].endswith('.pxl'):
+        script_path = sys.argv[1]
+        
+        # Validate based on script name
+        if 'memory_pressure_monitor' in script_path:
+            result = validate_memory_pressure_monitor(script_path)
+            print(json.dumps(result))
+            sys.exit(0)
+        elif 'network_issue_finder' in script_path:
+            result = validate_network_issue_finder(script_path)
+            print(json.dumps(result))
+            sys.exit(0)
+    
+    # Otherwise run main test suite
     main()

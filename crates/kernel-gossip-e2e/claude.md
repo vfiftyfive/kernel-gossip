@@ -1,5 +1,12 @@
 # E2E Test Crate Guide
 
+## 🚨 STRICT NO-MOCKING POLICY
+- ALL tests use REAL systems only
+- NO mock Kubernetes clients
+- NO simulated Pixie data
+- NO fake eBPF events
+- REAL kernel activity only
+
 ## 🎯 Purpose
 Full end-to-end testing of complete scenarios
 
