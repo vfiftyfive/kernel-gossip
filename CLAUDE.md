@@ -53,7 +53,7 @@ Transform kernel whispers into Kubernetes wisdom through Pixie-powered eBPF obse
   - Recommendation Engine: ✅
   - Status Updates: ✅
 - Integration Tests: ░░░░░░░░░░ 0%
-- E2E Tests: ░░░░░░░░░░ 0%
+- E2E Tests: ██████░░░░ 60% (CPU ✅, Memory ✅)
 - Demo Scenarios: ████████░░ 80% (test workloads ✅, demo script ✅)
 - Kubernetes Manifests: ██████████ 100% ✅
 - Container Image: ██████████ 100% ✅ (multi-platform, pushed to GCR)
@@ -69,7 +69,7 @@ Transform kernel whispers into Kubernetes wisdom through Pixie-powered eBPF obse
 **Phase 5: Integration & Testing**
 - [x] Complete remaining PxL scripts (memory_pressure_monitor.pxl, network_issue_finder.pxl) ✅
 - [x] Create Kubernetes manifests (CRDs, operator deployment, RBAC) ✅
-- [ ] Implement E2E test framework with real K8s cluster
+- [x] Implement E2E test framework with real K8s cluster ✅
 - [ ] Integration testing with Pixie webhooks
 
 **Phase 6: Demo Preparation**
