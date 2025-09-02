@@ -2,7 +2,7 @@ use anyhow::{Result, Context};
 use k8s_openapi::api::core::v1::Pod;
 use k8s_openapi::api::apps::v1::Deployment;
 use kube::{Api, Client, api::ListParams};
-use kernel_gossip_types::KernelWhisper;
+use kernel_gossip_types::{KernelWhisper, PodBirthCertificate};
 use tracing::info;
 
 use crate::TestWorkload;
@@ -148,6 +148,56 @@ impl E2ETestEnvironment {
         
         pods.create(&Default::default(), &pod).await
             .context("Failed to create stress pod")?;
+        
+        Ok(TestWorkload {
+            pod_name: name.to_string(),
+            namespace: self.namespace.clone(),
+        })
+    }
+    
+    /// Deploy a REAL network stress workload
+    pub async fn deploy_network_stress_workload(&self, name: &str) -> Result<TestWorkload> {
+        info!("Deploying network stress workload: {}", name);
+        
+        let pods: Api<Pod> = Api::namespaced(self.client.clone(), &self.namespace);
+        
+        // Create a pod that generates network traffic
+        let pod = serde_json::from_value(serde_json::json!({
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": name,
+                "namespace": &self.namespace,
+                "labels": {
+                    "test": "e2e",
+                    "type": "network-stress"
+                }
+            },
+            "spec": {
+                "containers": [{
+                    "name": "network-test",
+                    "image": "nginx:alpine",
+                    "command": ["/bin/sh"],
+                    "args": [
+                        "-c",
+                        "while true; do wget -q -O /dev/null http://google.com || true; sleep 0.1; done"
+                    ],
+                    "resources": {
+                        "requests": {
+                            "cpu": "100m",
+                            "memory": "64Mi"
+                        },
+                        "limits": {
+                            "cpu": "200m",
+                            "memory": "128Mi"
+                        }
+                    }
+                }]
+            }
+        }))?;
+        
+        pods.create(&Default::default(), &pod).await
+            .context("Failed to create network stress pod")?;
         
         Ok(TestWorkload {
             pod_name: name.to_string(),
@@ -308,6 +358,121 @@ impl E2ETestEnvironment {
             .context("Failed to create KernelWhisper")?;
         
         info!("Created KernelWhisper for pod: {}", pod_name);
+        Ok(())
+    }
+    
+    /// Deploy a simple workload (nginx)
+    pub async fn deploy_simple_workload(&self, name: &str) -> Result<TestWorkload> {
+        info!("Deploying simple workload: {}", name);
+        
+        let pods: Api<Pod> = Api::namespaced(self.client.clone(), &self.namespace);
+        
+        // Create a simple nginx pod
+        let pod = serde_json::from_value(serde_json::json!({
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": name,
+                "namespace": &self.namespace,
+                "labels": {
+                    "test": "e2e",
+                    "type": "simple"
+                }
+            },
+            "spec": {
+                "containers": [{
+                    "name": "nginx",
+                    "image": "nginx:alpine",
+                    "resources": {
+                        "requests": {
+                            "cpu": "50m",
+                            "memory": "32Mi"
+                        },
+                        "limits": {
+                            "cpu": "100m",
+                            "memory": "64Mi"
+                        }
+                    }
+                }]
+            }
+        }))?;
+        
+        pods.create(&Default::default(), &pod).await
+            .context("Failed to create simple pod")?;
+        
+        Ok(TestWorkload {
+            pod_name: name.to_string(),
+            namespace: self.namespace.clone(),
+        })
+    }
+    
+    /// Create a manual PodBirthCertificate (simulating Pixie webhook)
+    pub async fn create_manual_pod_birth_certificate(
+        &self,
+        pod_name: &str,
+        syscalls: Vec<&str>,
+        total_syscalls: u32,
+    ) -> Result<()> {
+        info!("Creating manual PodBirthCertificate for pod: {}", pod_name);
+        
+        let pbc: Api<PodBirthCertificate> = Api::namespaced(self.client.clone(), &self.namespace);
+        
+        let certificate = serde_json::from_value(serde_json::json!({
+            "apiVersion": "kernel.gossip.io/v1alpha1",
+            "kind": "PodBirthCertificate",
+            "metadata": {
+                "name": format!("{}-pbc", pod_name),
+                "namespace": &self.namespace,
+            },
+            "spec": {
+                "pod_name": pod_name,
+                "namespace": &self.namespace,
+                "timeline": [
+                    {
+                        "timestamp_ms": 0,
+                        "actor": "scheduler",
+                        "action": "Pod scheduled to node",
+                        "details": "Selected node based on resource availability"
+                    },
+                    {
+                        "timestamp_ms": 100,
+                        "actor": "kubelet",
+                        "action": "Container image pulled",
+                        "details": "nginx:alpine image downloaded"
+                    },
+                    {
+                        "timestamp_ms": 500,
+                        "actor": "runtime",
+                        "action": "Container created",
+                        "details": "Container ID assigned"
+                    },
+                    {
+                        "timestamp_ms": 800,
+                        "actor": "kernel",
+                        "action": "Namespaces created",
+                        "details": format!("Created PID, NET, MNT, UTS, IPC namespaces with {} syscalls", syscalls.len())
+                    },
+                    {
+                        "timestamp_ms": 2000,
+                        "actor": "kernel",
+                        "action": "Container started",
+                        "details": format!("Total {} syscalls: {}", total_syscalls, syscalls.join(", "))
+                    }
+                ],
+                "kernel_stats": {
+                    "total_syscalls": total_syscalls,
+                    "namespaces_created": 5,
+                    "cgroup_writes": 42,
+                    "iptables_rules": 8,
+                    "total_duration_ms": 2500
+                }
+            }
+        }))?;
+        
+        pbc.create(&Default::default(), &certificate).await
+            .context("Failed to create PodBirthCertificate")?;
+        
+        info!("Created PodBirthCertificate for pod: {}", pod_name);
         Ok(())
     }
     
