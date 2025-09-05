@@ -1,0 +1,20 @@
+import px
+
+# Check what tables are available in Pixie
+def check_tables():
+    # Try to get network events which should exist
+    df = px.DataFrame(table='conn_stats', start_time='-10s')
+    
+    # Add pod info
+    df.pod = px.upid_to_pod_name(df.upid)
+    df.namespace = px.upid_to_namespace(df.upid)
+    
+    # Filter for kernel-gossip
+    df = df[df.namespace == 'kernel-gossip']
+    
+    # Just get a few rows to see what's available
+    df = df.head(5)
+    
+    return df[['time_', 'pod', 'namespace', 'conn_open', 'conn_close']]
+
+px.display(check_tables(), 'connections')

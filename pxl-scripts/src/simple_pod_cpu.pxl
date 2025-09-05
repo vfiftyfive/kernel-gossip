@@ -1,0 +1,34 @@
+import px
+
+def pod_cpu_stats():
+    """
+    Get CPU stats for pods in kernel-gossip namespace
+    """
+    # Use the pod table directly 
+    df = px.DataFrame(table='process_stats', start_time='-30s')
+    
+    # Get pod metadata using upid_to functions
+    df.pod = px.upid_to_pod_name(df.upid)
+    df.namespace = px.upid_to_namespace(df.upid) 
+    df.container = px.upid_to_container_name(df.upid)
+    
+    # Filter for pods only (not host processes)
+    df = df[df.pod != '']
+    
+    # Filter for kernel-gossip namespace
+    df = df[df.namespace == 'kernel-gossip']
+    
+    # Calculate CPU percentage (user + kernel time)
+    df.cpu_ns = df.cpu_utime_ns + df.cpu_ktime_ns
+    
+    # Group by pod
+    result = df.groupby(['pod', 'namespace', 'container']).agg(
+        cpu_ns_sum=('cpu_ns', px.sum),
+        samples=('pod', px.count)
+    )
+    
+    result.time_ = px.now()
+    
+    return result[['time_', 'pod', 'namespace', 'container', 'cpu_ns_sum', 'samples']]
+
+px.display(pod_cpu_stats(), 'cpu_stats')

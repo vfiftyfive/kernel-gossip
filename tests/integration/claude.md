@@ -1,5 +1,11 @@
 # Integration Test Scenarios
 
+## 🚨 STRICT NO-MOCKING POLICY
+- ALL tests use REAL Pixie webhooks
+- NO mock Kubernetes clients
+- NO simulated webhook payloads
+- REAL eBPF data only
+
 ## 📋 Test Scenarios
 1. Pixie webhook → CRD creation
 2. CRD creation → Action execution
@@ -11,6 +17,7 @@
 - Parallel execution safe
 - Deterministic results
 - Clear assertions
+- NO MOCKS - REAL systems only
 
 ## 📊 Scenario Status
 - Webhook → CRD: ░░░░░░░░░░ 0%

@@ -1,0 +1,90 @@
+# Cloud Build configuration for kernel-gossip
+# Builds multi-platform container images and runs tests
+
+steps:
+  # Step 1: Run unit tests
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'unit-tests'
+    args:
+      - 'run'
+      - '--rm'
+      - '-v'
+      - '/workspace:/workspace'
+      - '-w'
+      - '/workspace'
+      - 'rust:1.81'
+      - 'sh'
+      - '-c'
+      - |
+        cargo test --all --lib
+    waitFor: ['-']
+
+  # Step 2: Run integration tests
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'integration-tests'
+    args:
+      - 'run'
+      - '--rm'
+      - '-v'
+      - '/workspace:/workspace'
+      - '-w'
+      - '/workspace'
+      - 'rust:1.81'
+      - 'sh'
+      - '-c'
+      - |
+        cargo test --all --test '*' -- --test-threads=1
+    waitFor: ['unit-tests']
+
+  # Step 3: Build multi-platform image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args:
+      - 'buildx'
+      - 'build'
+      - '--platform=linux/amd64,linux/arm64'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/kernel-gossip-operator:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/kernel-gossip-operator:latest'
+      - '--push'
+      - '.'
+    waitFor: ['integration-tests']
+
+  # Step 4: Deploy to GKE (if on main branch)
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'deploy'
+    args:
+      - 'run'
+      - '--filename=k8s/'
+      - '--cluster=cds2025'
+      - '--location=europe-west1-b'
+      - '--namespace=kernel-gossip'
+    waitFor: ['build-image']
+    # Only deploy on main branch
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [[ "$BRANCH_NAME" == "main" ]]; then
+          gke-deploy run \
+            --filename=k8s/ \
+            --cluster=cds2025 \
+            --location=europe-west1-b \
+            --namespace=kernel-gossip
+        else
+          echo "Skipping deployment for branch: $BRANCH_NAME"
+        fi
+
+# Build configuration
+options:
+  machineType: 'E2_HIGHCPU_8'
+  substitutionOption: 'ALLOW_LOOSE'
+  
+# Timeout for the entire build
+timeout: '1800s'
+
+# Images to push
+images:
+  - 'gcr.io/$PROJECT_ID/kernel-gossip-operator:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/kernel-gossip-operator:latest'

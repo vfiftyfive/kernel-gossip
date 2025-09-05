@@ -1,0 +1,42 @@
+import px
+
+def cpu_throttle_detector():
+    """
+    Detects REAL CPU throttling from kernel data.
+    Returns pods with actual throttling metrics.
+    """
+    # Get process stats for the last 30 seconds
+    df = px.DataFrame(table='process_stats', start_time='-30s')
+    
+    # Must have pod context
+    df = df[df.pod_name != ""]
+    
+    # Calculate throttling percentage
+    # This is REAL kernel data from cgroup throttling
+    df.throttle_pct = px.DurationNanos(df.cpu_ktime_ns) * 100.0 / px.DurationNanos(df.runtime_ns)
+    
+    # Get CPU usage as percentage
+    df.cpu_pct = px.DurationNanos(df.cpu_ktime_ns) * 100.0 / px.DurationNanos(df.runtime_ns)
+    
+    # Group by pod to get aggregated metrics
+    output = df.groupby(['pod_name', 'namespace']).agg(
+        cpu_usage_mean=('cpu_pct', px.mean),
+        cpu_usage_max=('cpu_pct', px.max),
+        num_samples=('cpu_pct', px.count),
+        runtime_ns_sum=('runtime_ns', px.sum)
+    )
+    
+    # Add timestamp
+    output.timestamp = px.now()
+    
+    # Filter for kernel-gossip namespace or significant CPU usage
+    output = output[output.namespace == 'kernel-gossip']
+    
+    # Select final columns
+    output = output[['timestamp', 'pod_name', 'namespace', 
+                     'cpu_usage_mean', 'cpu_usage_max', 'num_samples']]
+    
+    return output
+
+# Display the output
+px.display(cpu_throttle_detector(), 'cpu_throttle')

@@ -1,0 +1,30 @@
+import px
+
+def pod_syscalls():
+    """
+    Trace syscalls for pod creation events
+    """
+    # Get syscall events from Pixie
+    df = px.DataFrame(table='syscall_events', start_time='-60s')
+    
+    # Add pod metadata
+    df.pod = px.upid_to_pod_name(df.upid)
+    df.namespace = px.upid_to_namespace(df.upid)
+    
+    # Filter for kernel-gossip namespace
+    df = df[df.namespace == 'kernel-gossip']
+    
+    # Filter for interesting syscalls related to pod creation
+    interesting_syscalls = ['clone', 'execve', 'mount', 'setns', 'open', 'mkdir']
+    df = df[px.contains(df.syscall, interesting_syscalls)]
+    
+    # Group by pod and syscall type
+    result = df.groupby(['pod', 'syscall']).agg(
+        count=('syscall', px.count),
+        first_seen=('time_', px.min),
+        last_seen=('time_', px.max)
+    )
+    
+    return result[['pod', 'syscall', 'count', 'first_seen', 'last_seen']]
+
+px.display(pod_syscalls(), 'syscalls')
