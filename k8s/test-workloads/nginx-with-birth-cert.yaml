@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-birth-demo
+  namespace: kernel-gossip
+  annotations:
+    # This annotation triggers birth certificate generation
+    kernel.gossip.io/birth-certificate: "true"
+    kernel.gossip.io/description: "Monitor syscalls during pod creation"
+  labels:
+    app: nginx-demo
+    purpose: birth-certificate-demo
+spec:
+  containers:
+  - name: nginx
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "100m"
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-birth-demo
+  namespace: kernel-gossip
+spec:
+  selector:
+    app: nginx-demo
+  ports:
+  - port: 80
+    targetPort: 80

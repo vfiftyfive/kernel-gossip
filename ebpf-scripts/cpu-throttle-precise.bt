@@ -1,0 +1,122 @@
+#!/usr/bin/env bpftrace
+/*
+ * CPU Throttle Detector - Precise Version
+ * Directly monitors cgroup CPU throttling events
+ * No filtering needed - throttling IS the pod-specific signal!
+ */
+
+#include <linux/cgroup.h>
+
+BEGIN {
+    printf("🎯 CPU Throttle Detection - Precise Mode\n");
+    printf("⚡ Monitoring actual kernel throttling decisions\n");
+    @start = nsecs;
+}
+
+// The kernel function that actually throttles a cgroup
+kprobe:tg_throttle_down {
+    // The throttled cgroup is passed as arg0
+    $tg = (struct task_group *)arg0;
+    $cfs_rq = (struct cfs_rq *)arg1;
+    
+    // Extract the cgroup path (this is pod-specific!)
+    // In real kernel, would need to traverse to get path
+    @throttle_events[tid] = nsecs;
+    
+    printf("🚨 THROTTLE EVENT: Task group throttled at %llu\n", nsecs);
+    
+    // The beautiful part: this IS pod-specific by nature
+    // Each pod has its own task_group
+    @throttled_pods[tid] = 1;
+}
+
+// Track when throttling is lifted
+kprobe:tg_unthrottle_up {
+    $tg = (struct task_group *)arg0;
+    
+    if (@throttle_events[tid] != 0) {
+        $duration_ms = (nsecs - @throttle_events[tid]) / 1000000;
+        @throttle_duration_ms = hist($duration_ms);
+        
+        printf("✅ UNTHROTTLE: Released after %d ms\n", $duration_ms);
+        delete(@throttle_events[tid]);
+    }
+}
+
+// Even better: Monitor the CFS bandwidth controller directly
+kprobe:sched_cfs_period_timer {
+    // This fires every period (usually 100ms) for each cgroup with CPU limits
+    $cfs_b = (struct cfs_bandwidth *)arg0;
+    
+    // Check if this cgroup is throttled
+    $throttled = $cfs_b->throttled;
+    $runtime_remaining = $cfs_b->runtime_remaining;
+    $quota = $cfs_b->quota;
+    
+    if ($throttled) {
+        // Calculate throttle percentage
+        $used = $quota - $runtime_remaining;
+        if ($quota > 0) {
+            $throttle_pct = ($used * 100) / $quota;
+            
+            // This is THE kernel truth - no estimation needed!
+            printf("🔥 KERNEL TRUTH: Cgroup throttled at %d%% of quota\n", $throttle_pct);
+            
+            @throttle_severity[$throttle_pct / 10] = count();
+            
+            // Track which cgroups are most throttled
+            @throttled_cgroups[kstack] = $throttle_pct;
+        }
+    }
+}
+
+// Direct detection of CPU pressure
+kprobe:psi_update_stats /str(arg0) == "cpu"/ {
+    // PSI (Pressure Stall Information) is the kernel's own measure
+    $some = ((struct psi_group *)arg0)->total[0];  // Some pressure
+    $full = ((struct psi_group *)arg0)->total[1];  // Full pressure
+    
+    if ($full > 100000000) {  // 100ms of full stall
+        printf("⚠️  HIGH CPU PRESSURE detected: %llu ns full stall\n", $full);
+        @pressure_events++;
+    }
+}
+
+// Monitor the actual scheduler decisions
+tracepoint:sched:sched_stat_runtime {
+    // Only track if this task belongs to a throttled cgroup
+    if (@throttled_pods[tid] == 1) {
+        @throttled_runtime[comm] = sum(args->runtime);
+        
+        // Compare with wall time to see impact
+        $efficiency = (args->runtime * 100) / (nsecs - @start);
+        if ($efficiency < 50) {
+            printf("💀 Task %s only got %d%% of CPU time (throttled)\n", 
+                   comm, $efficiency);
+        }
+    }
+}
+
+interval:s:10 {
+    printf("\n📊 Throttling Statistics:\n");
+    printf("════════════════════════\n");
+    
+    printf("Throttle events: %d\n", @pressure_events);
+    printf("\nThrottle duration histogram (ms):\n");
+    print(@throttle_duration_ms);
+    
+    printf("\nThrottle severity distribution (0=0-9%%, 1=10-19%%, etc):\n");
+    print(@throttle_severity);
+    
+    printf("\nMost throttled cgroups:\n");
+    print(@throttled_cgroups, 5);
+}
+
+END {
+    printf("\n🏁 Throttling Summary:\n");
+    printf("Total pressure events: %d\n", @pressure_events);
+    print(@throttle_duration_ms);
+    clear(@throttle_events);
+    clear(@throttled_pods);
+    clear(@throttled_runtime);
+}

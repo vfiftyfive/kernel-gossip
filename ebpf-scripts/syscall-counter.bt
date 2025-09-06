@@ -1,0 +1,54 @@
+#!/usr/bin/env bpftrace
+/*
+ * Syscall Counter - REAL eBPF program to count ALL syscalls
+ * Low overhead aggregation - counts all syscalls by process and syscall number
+ */
+
+BEGIN {
+    printf("🚀 Starting REAL eBPF syscall tracing...\n");
+    printf("Capturing ALL syscalls with low overhead aggregation\n");
+    @start = nsecs;
+}
+
+// Count ALL syscalls - aggregate by syscall ID and process name
+// This is REAL eBPF running in kernel!
+tracepoint:raw_syscalls:sys_enter {
+    @syscalls[args->id, comm]++;
+    @total_syscalls++;
+    
+    // Track specific interesting syscalls for container creation
+    if (args->id == 56 || args->id == 57) { // clone
+        @clone_count++;
+    } else if (args->id == 59) { // execve
+        @execve_count++;
+    } else if (args->id == 165) { // mount
+        @mount_count++;
+    } else if (args->id == 308) { // setns
+        @setns_count++;
+    }
+}
+
+// Print summary every 10 seconds
+interval:s:10 {
+    $elapsed = (nsecs - @start) / 1000000000;
+    printf("\n📊 REAL eBPF Syscall Summary (last %d seconds):\n", $elapsed);
+    printf("  🚀 TOTAL SYSCALLS CAPTURED: %d\n", @total_syscalls);
+    printf("  📦 Container-related syscalls:\n");
+    printf("    clone: %d\n", @clone_count);
+    printf("    execve: %d\n", @execve_count);
+    printf("    mount: %d\n", @mount_count);
+    printf("    setns: %d\n", @setns_count);
+    printf("  ⚡ Syscalls per second: %d\n", @total_syscalls / $elapsed);
+    
+    // Show top 5 syscalls
+    printf("\n  🔝 Top 5 syscalls by frequency:\n");
+    print(@syscalls, 5);
+}
+
+END {
+    printf("\n🏁 Final syscall counts:\n");
+    printf("  clone: %d\n", @clone_count);
+    printf("  execve: %d\n", @execve_count);
+    printf("  mount: %d\n", @mount_count);
+    printf("  setns: %d\n", @setns_count);
+}

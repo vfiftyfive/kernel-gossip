@@ -50,16 +50,6 @@ spec:
               key: WEBHOOK_PATH
         - name: RUST_LOG
           value: kernel_gossip_operator=info,kube=info
-        - name: PIXIE_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: kernel-gossip-operator-pixie
-              key: PIXIE_API_KEY
-        - name: PIXIE_CLUSTER_ID
-          valueFrom:
-            secretKeyRef:
-              name: kernel-gossip-operator-pixie
-              key: PIXIE_CLUSTER_ID
         - name: WEBHOOK_PORT
           value: "8080"
         - name: METRICS_PORT

@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
     kind = "KernelWhisper",
     plural = "kernelwhispers",
     shortname = "kw",
-    namespaced
+    namespaced,
+    status = "KernelWhisperStatus"
 )]
 pub struct KernelWhisperSpec {
     pub pod_name: String,
@@ -38,6 +39,23 @@ pub enum Severity {
     Critical,
     Warning,
     Info,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct KernelWhisperStatus {
+    pub insight: String,
+    pub recommendation: String,
+    pub kernel_evidence: String,
+    pub priority: String,
+    pub metrics_comparison: MetricsComparison,
+    pub last_updated: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct MetricsComparison {
+    pub kernel_cpu_usage: f64,
+    pub metrics_cpu_usage: f64,
+    pub discrepancy_percent: f64,
 }
 
 // Implementation methods - ONLY what's needed for tests
@@ -77,6 +95,7 @@ impl KernelWhisper {
                 },
                 severity,
             },
+            status: None, // Status is managed by the operator
         }
     }
 

@@ -1,0 +1,27 @@
+# Real eBPF with bpftrace - Using pre-built bpftrace image
+FROM quay.io/iovisor/bpftrace:latest
+
+# Install additional tools we need
+RUN apt-get update && apt-get install -y \
+    curl \
+    jq \
+    wget \
+    bash \
+    && rm -rf /var/lib/apt/lists/*
+
+# Note: This image has bpftrace with BTF support
+# which works without kernel headers on modern kernels
+
+# Copy our eBPF scripts
+COPY ebpf-scripts/syscall-counter.bt /opt/ebpf/
+COPY ebpf-scripts/cpu-throttle.bt /opt/ebpf/
+COPY ebpf-scripts/pod-lifecycle.bt /opt/ebpf/
+
+# Make them executable
+RUN chmod +x /opt/ebpf/*.bt
+
+# Create a wrapper script to run eBPF and send data to webhook
+COPY scripts/ebpf-runner.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/ebpf-runner.sh
+
+ENTRYPOINT ["/usr/local/bin/ebpf-runner.sh"]

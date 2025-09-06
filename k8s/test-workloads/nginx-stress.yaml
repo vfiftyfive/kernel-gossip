@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nginx-stress
+  namespace: kernel-gossip
+spec:
+  parallelism: 5  # Run 5 pods in parallel
+  completions: 5  # Complete 5 pods
+  template:
+    spec:
+      containers:
+      - name: stress
+        image: curlimages/curl:latest
+        command: ["/bin/sh"]
+        args:
+        - "-c"
+        - |
+          echo "Starting stress test on nginx..."
+          for i in $(seq 1 1000); do
+            curl -s http://10.72.1.214 > /dev/null &
+            if [ $((i % 100)) -eq 0 ]; then
+              echo "Sent $i requests..."
+            fi
+          done
+          wait
+          echo "Stress test completed!"
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "128Mi"
+          requests:
+            cpu: "250m"
+            memory: "64Mi"
+      restartPolicy: Never
+  backoffLimit: 1

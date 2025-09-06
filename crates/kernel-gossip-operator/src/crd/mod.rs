@@ -102,7 +102,7 @@ pub async fn reconcile_pod_birth_certificate(
 // Reconcile function for KernelWhisper
 pub async fn reconcile_kernel_whisper(
     kw: Arc<KernelWhisper>,
-    _ctx: Arc<Context>,
+    ctx: Arc<Context>,
 ) -> Result<Action, Error> {
     let name = kw.name_any();
     info!("Reconciling KernelWhisper: {} with severity {:?}", name, kw.spec.severity);
@@ -119,13 +119,13 @@ pub async fn reconcile_kernel_whisper(
         
         // Update CRD status with recommendation
         let status_message = build_status_update(&recommendation);
-        if let Err(e) = update_kernel_whisper_status(&_ctx.client, &kw, &status_message).await {
+        if let Err(e) = update_kernel_whisper_status(&ctx.client, &kw, &status_message).await {
             warn!("Failed to update KernelWhisper status: {}", e);
         }
     } else {
         // No recommendation needed - update status with healthy state
         let status_message = build_status_update_no_action("Pod operating within normal parameters");
-        if let Err(e) = update_kernel_whisper_status(&_ctx.client, &kw, &status_message).await {
+        if let Err(e) = update_kernel_whisper_status(&ctx.client, &kw, &status_message).await {
             warn!("Failed to update KernelWhisper status: {}", e);
         }
     }
@@ -242,15 +242,66 @@ pub fn build_status_update_no_action(message: &str) -> String {
     )
 }
 
-// Placeholder for actual K8s status update (will implement when we have K8s access)
+// Update KernelWhisper status with recommendation and metrics comparison
 pub async fn update_kernel_whisper_status(
-    _client: &Client,
-    _kw: &KernelWhisper,
-    _status_message: &str,
+    client: &Client,
+    kw: &KernelWhisper,
+    _status_message: &str,  // Currently unused, keeping for API compatibility
 ) -> Result<(), Error> {
-    // TODO: Implement actual K8s status update
-    // This would update the KernelWhisper CRD status field with the status_message
-    info!("Would update CRD status with: {}", _status_message);
+    use kernel_gossip_types::kernel_whisper::{KernelWhisperStatus, MetricsComparison};
+    use kube::api::{Api, PatchParams, Patch};
+    use serde_json::json;
+    
+    // Use Api::all since KernelWhisper already has namespace in metadata
+    let default_ns = "default".to_string();
+    let namespace = kw.metadata.namespace.as_ref().unwrap_or(&default_ns);
+    let api: Api<KernelWhisper> = Api::namespaced(client.clone(), namespace);
+    
+    // Parse the status message to extract components
+    // For now, we'll use the message directly and add real metrics comparison
+    let recommendation_engine = RecommendationEngine::new();
+    let recommendation = recommendation_engine.analyze_kernel_whisper(kw);
+    
+    let status = if let Some(rec) = recommendation {
+        KernelWhisperStatus {
+            insight: rec.insight,
+            recommendation: rec.suggested_action,
+            kernel_evidence: rec.kernel_evidence,
+            priority: rec.priority.to_string(),
+            metrics_comparison: MetricsComparison {
+                kernel_cpu_usage: kw.spec.kernel_truth.actual_cpu_cores,
+                metrics_cpu_usage: kw.spec.metrics_lie.cpu_percent / 100.0,
+                discrepancy_percent: kw.spec.kernel_truth.throttled_percent - kw.spec.metrics_lie.cpu_percent,
+            },
+            last_updated: chrono::Utc::now().to_rfc3339(),
+        }
+    } else {
+        KernelWhisperStatus {
+            insight: "Pod operating within normal parameters".to_string(),
+            recommendation: "No action required".to_string(),
+            kernel_evidence: format!("Throttling: {}%", kw.spec.kernel_truth.throttled_percent),
+            priority: "Low".to_string(),
+            metrics_comparison: MetricsComparison {
+                kernel_cpu_usage: kw.spec.kernel_truth.actual_cpu_cores,
+                metrics_cpu_usage: kw.spec.metrics_lie.cpu_percent / 100.0,
+                discrepancy_percent: kw.spec.kernel_truth.throttled_percent - kw.spec.metrics_lie.cpu_percent,
+            },
+            last_updated: chrono::Utc::now().to_rfc3339(),
+        }
+    };
+    
+    // Create a status patch
+    let status_patch = json!({
+        "status": status
+    });
+    
+    // Apply the status update
+    let patch_params = PatchParams::apply("kernel-gossip-operator");
+    let _result = api
+        .patch_status(&kw.name_any(), &patch_params, &Patch::Merge(&status_patch))
+        .await?;
+    
+    info!("Updated KernelWhisper status for {}", kw.name_any());
     Ok(())
 }
 

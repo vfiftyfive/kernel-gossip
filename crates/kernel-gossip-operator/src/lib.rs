@@ -4,3 +4,4 @@ pub mod webhook;
 pub mod actions;
 pub mod crd;
 pub mod recommendation;
+pub mod ebpf;

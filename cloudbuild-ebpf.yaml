@@ -1,0 +1,21 @@
+steps:
+# Build eBPF programs with aya-rs
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+  - 'build'
+  - '--platform=linux/amd64'
+  - '-f'
+  - 'Dockerfile.kernel-observer-ebpf-gcb'
+  - '-t'
+  - 'gcr.io/$PROJECT_ID/kernel-observer-ebpf:latest'
+  - '.'
+
+# Push to GCR
+images:
+- 'gcr.io/$PROJECT_ID/kernel-observer-ebpf:latest'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1200s'

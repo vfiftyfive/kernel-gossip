@@ -1,0 +1,89 @@
+#!/usr/bin/env bpftrace
+/*
+ * Pod-Specific Syscall Counter
+ * Tracks syscalls ONLY for a specific pod by following the process tree
+ * from container runtime operations
+ */
+
+BEGIN {
+    printf("🎯 Pod-Specific Syscall Tracking Started\n");
+    printf("📦 Monitoring container runtime for pod creation\n");
+    @target_pod = str($1);  // Pass pod name as argument
+    if (@target_pod == "") {
+        @target_pod = "nginx-demo";
+    }
+    printf("🔍 Tracking pod: %s\n", @target_pod);
+}
+
+// Track when runc/containerd creates a container with our pod name
+uprobe:/usr/bin/runc:main,
+uprobe:/usr/bin/containerd:main {
+    $cmdline = str(ustack);
+    if (strcontains($cmdline, @target_pod)) {
+        @container_root_pid[tid] = 1;
+        printf("🚀 Container runtime starting pod %s (pid=%d)\n", @target_pod, pid);
+    }
+}
+
+// Track clone syscalls from container runtime - these create the pod processes
+tracepoint:syscalls:sys_enter_clone {
+    if (@container_root_pid[pid] == 1 || @tracked_pids[pid] == 1) {
+        @creating_container[tid] = 1;
+        printf("📍 Clone from tracked process (pid=%d)\n", pid);
+    }
+}
+
+// When clone exits successfully, track the child
+tracepoint:syscalls:sys_exit_clone /@creating_container[tid] == 1/ {
+    if (args->ret > 0) {  // Child PID returned
+        @tracked_pids[args->ret] = 1;
+        @pod_process_count++;
+        printf("✅ Tracking new pod process: %d\n", args->ret);
+        delete(@creating_container[tid]);
+    }
+}
+
+// Count syscalls ONLY from tracked pod processes
+tracepoint:raw_syscalls:sys_enter /@tracked_pids[pid] == 1/ {
+    @pod_syscalls[@target_pod, args->id]++;
+    @total_pod_syscalls[@target_pod]++;
+    
+    // Track specific golden syscalls
+    if (args->id == 56 || args->id == 57) {  // clone
+        @golden_clone[@target_pod]++;
+    } else if (args->id == 165) {  // mount
+        @golden_mount[@target_pod]++;
+    } else if (args->id == 257) {  // openat (for cgroup)
+        if (str(args->filename).contains("cgroup")) {
+            @golden_cgroup[@target_pod]++;
+        }
+    }
+}
+
+// Stop tracking when process exits
+tracepoint:sched:sched_process_exit /@tracked_pids[pid] == 1/ {
+    delete(@tracked_pids[pid]);
+    @pod_process_count--;
+    printf("🔚 Process %d exited, remaining pod processes: %d\n", pid, @pod_process_count);
+}
+
+// Report every 5 seconds
+interval:s:5 {
+    if (@total_pod_syscalls[@target_pod] > 0) {
+        printf("\n📊 Pod-Specific Stats for %s:\n", @target_pod);
+        printf("  Total syscalls (pod only): %d\n", @total_pod_syscalls[@target_pod]);
+        printf("  Golden syscalls:\n");
+        printf("    Clone: %d\n", @golden_clone[@target_pod]);
+        printf("    Mount: %d\n", @golden_mount[@target_pod]);  
+        printf("    Cgroup: %d\n", @golden_cgroup[@target_pod]);
+        printf("  Tracked processes: %d\n", @pod_process_count);
+    }
+}
+
+END {
+    printf("\n🏁 Final pod-specific stats for %s:\n", @target_pod);
+    printf("  Total syscalls: %d\n", @total_pod_syscalls[@target_pod]);
+    clear(@container_root_pid);
+    clear(@tracked_pids);
+    clear(@creating_container);
+}

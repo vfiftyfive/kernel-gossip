@@ -1,0 +1,55 @@
+# Dockerfile for kernel-observer with REAL eBPF support
+# ======================================================
+# Compiles aya-rs eBPF programs and runs them in production
+
+# Build stage - compile eBPF and userspace
+FROM rust:latest AS builder
+
+# Install dependencies for eBPF compilation
+RUN apt-get update && apt-get install -y \
+    llvm \
+    clang \
+    libbpf-dev \
+    linux-headers-amd64 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust targets for eBPF
+RUN rustup target add bpfel-unknown-none \
+    && rustup component add rust-src \
+    && cargo install bpf-linker
+
+WORKDIR /build
+
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY crates/ ./crates/
+
+# Build eBPF programs first
+WORKDIR /build/crates/kernel-observer-ebpf-v2
+RUN cargo build --target bpfel-unknown-none -Z build-std=core --release
+
+# Build userspace with eBPF support
+WORKDIR /build/crates/kernel-observer
+RUN cargo build --release --features ebpf --bin kernel-observer
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libbpf1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy compiled eBPF programs
+COPY --from=builder /build/crates/kernel-observer-ebpf-v2/target/bpfel-unknown-none/release/syscall_counter /opt/ebpf/
+COPY --from=builder /build/crates/kernel-observer-ebpf-v2/target/bpfel-unknown-none/release/throttle_detector /opt/ebpf/
+
+# Copy userspace binary
+COPY --from=builder /build/crates/kernel-observer/target/release/kernel-observer /usr/local/bin/
+
+# Set environment for eBPF
+ENV RUST_LOG=kernel_observer=info,aya=info
+ENV ENABLE_EBPF=true
+
+ENTRYPOINT ["/usr/local/bin/kernel-observer"]

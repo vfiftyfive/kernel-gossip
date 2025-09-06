@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ddosify-nginx
+  namespace: kernel-gossip
+spec:
+  template:
+    spec:
+      containers:
+      - name: ddosify
+        image: ddosify/ddosify:latest
+        command: ["ddosify"]
+        args:
+        - "-t"
+        - "http://10.72.1.214"  # Direct IP of nginx-demo-fresh pod
+        - "-n"
+        - "10000"  # 10000 requests
+        - "-c"
+        - "100"    # 100 concurrent connections
+        - "-d"
+        - "60"     # Duration 60 seconds
+        - "-m"
+        - "GET"
+      restartPolicy: Never
+  backoffLimit: 1

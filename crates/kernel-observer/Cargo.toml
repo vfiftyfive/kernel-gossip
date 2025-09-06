@@ -1,0 +1,43 @@
+[package]
+name = "kernel-observer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# aya-rs for eBPF - the Rust way to write eBPF!
+aya = { version = "0.12", optional = true }
+aya-log = { version = "0.2", optional = true }
+bytes = "1"
+tokio = { version = "1.35", features = ["full"] }
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# For webhook sending
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+
+# For filesystem monitoring
+glob = "0.3"
+
+[features]
+default = []
+ebpf = ["aya", "aya-log"]
+
+[[bin]]
+name = "test-cpu-throttle"
+path = "src/bin/test_cpu_throttle.rs"
+
+[[bin]]
+name = "observe-pod-birth"
+path = "src/bin/observe_pod_birth.rs"
+
+[[bin]]
+name = "kernel-observer"
+path = "src/main.rs"
+
+[dev-dependencies]
+# For testing with real kernel
+tempfile = "3"

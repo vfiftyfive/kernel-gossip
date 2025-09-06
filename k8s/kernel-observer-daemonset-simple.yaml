@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kernel-observer
+  namespace: kernel-gossip
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kernel-observer
+rules:
+- apiGroups: [""]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kernel-observer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kernel-observer
+subjects:
+- kind: ServiceAccount
+  name: kernel-observer
+  namespace: kernel-gossip
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kernel-observer
+  namespace: kernel-gossip
+  labels:
+    app: kernel-observer
+spec:
+  selector:
+    matchLabels:
+      app: kernel-observer
+  template:
+    metadata:
+      labels:
+        app: kernel-observer
+    spec:
+      serviceAccountName: kernel-observer
+      hostPID: true  # Access host processes
+      containers:
+      - name: observer
+        image: gcr.io/scaleops-dev-rel/kernel-observer:latest
+        imagePullPolicy: Always
+        env:
+        - name: WEBHOOK_URL
+          value: "http://kernel-gossip-operator:8080/webhook/pixie"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: RUST_LOG
+          value: "info"
+        securityContext:
+          privileged: true  # Required for cgroup access
+          capabilities:
+            add:
+            - SYS_ADMIN
+            - SYS_RESOURCE
+            - SYS_PTRACE
+        volumeMounts:
+        - name: cgroup
+          mountPath: /sys/fs/cgroup
+          readOnly: true
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+      volumes:
+      - name: cgroup
+        hostPath:
+          path: /sys/fs/cgroup
+      - name: proc
+        hostPath:
+          path: /proc
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      - effect: NoExecute
+        operator: Exists

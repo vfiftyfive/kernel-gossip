@@ -1,0 +1,24 @@
+# Simple Kernel Observer - Cgroup monitoring without eBPF
+FROM rust:latest AS builder
+
+WORKDIR /app
+
+# Copy everything
+COPY . .
+
+# Build just the userspace component (no eBPF)
+RUN cd crates/kernel-observer && \
+    cargo build --release --bin kernel-observer
+
+# Runtime image
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the binary
+COPY --from=builder /app/target/release/kernel-observer /usr/local/bin/
+
+# The container needs to run as privileged to access cgroups
+ENTRYPOINT ["/usr/local/bin/kernel-observer"]

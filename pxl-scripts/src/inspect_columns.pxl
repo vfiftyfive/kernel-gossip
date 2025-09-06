@@ -1,9 +1,0 @@
-import px
-
-def inspect():
-    df = px.DataFrame(table='process_stats', start_time='-10s')
-    # Just get schema info by limiting to 1 row
-    df = df.head(1)
-    return df
-
-px.display(inspect(), 'columns')

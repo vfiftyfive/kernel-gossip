@@ -5,9 +5,7 @@ mod server_tests {
 
     #[tokio::test]
     async fn test_health_endpoint() {
-        // Set required env vars
-        std::env::set_var("PIXIE_API_KEY", "test-key");
-        std::env::set_var("PIXIE_CLUSTER_ID", "test-cluster");
+        // No env vars required anymore
 
         // Create app directly for testing
         let app = Router::new()
@@ -79,9 +77,7 @@ mod server_tests {
     #[tokio::test]
     #[ignore = "Requires K8s cluster"]
     async fn test_server_creation() {
-        // Set required env vars
-        std::env::set_var("PIXIE_API_KEY", "test-key-create");
-        std::env::set_var("PIXIE_CLUSTER_ID", "test-cluster-create");
+        // No env vars required anymore
         std::env::set_var("WEBHOOK_PORT", "8083");
 
         // Test that we can create the server
