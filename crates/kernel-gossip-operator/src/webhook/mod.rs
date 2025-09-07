@@ -26,6 +26,14 @@ pub struct PodCreationPayload {
     pub namespace_ops: u64,
     pub cgroup_writes: u64,
     pub duration_ns: u64,
+    #[serde(default)]
+    pub timeline: Vec<TimelineEvent>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimelineEvent {
+    pub timestamp_ms: u64,
+    pub action: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,7 +102,7 @@ async fn handle_pixie_webhook(
             }
             
             // Try to check annotations if pod exists, but don't fail if it doesn't
-            use kube::api::{Api, ObjectMeta};
+            use kube::api::Api;
             use k8s_openapi::api::core::v1::Pod;
             
             let pods: Api<Pod> = Api::namespaced(client.as_ref().clone(), &data.namespace);
@@ -146,7 +154,7 @@ async fn handle_pixie_webhook(
             );
             
             // Check if pod has monitoring annotation
-            use kube::api::{Api, ObjectMeta};
+            use kube::api::Api;
             use k8s_openapi::api::core::v1::Pod;
             
             let pods: Api<Pod> = Api::namespaced(client.as_ref().clone(), &data.namespace);

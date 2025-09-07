@@ -14,6 +14,7 @@ mod actions_unit_tests {
             namespace_ops: 56,
             cgroup_writes: 78,
             duration_ns: 1000000,
+            timeline: vec![],
         };
 
         let pbc = build_pod_birth_certificate(&payload);
@@ -26,7 +27,7 @@ mod actions_unit_tests {
         // Verify timeline
         assert_eq!(pbc.spec.timeline.len(), 1);
         assert_eq!(pbc.spec.timeline[0].actor, Actor::Kernel);
-        assert!(pbc.spec.timeline[0].details.as_ref().unwrap().contains("1234"));
+        assert!(pbc.spec.timeline[0].action.contains("1234"));
 
         // Verify kernel stats
         assert_eq!(pbc.spec.kernel_stats.total_syscalls, 1234);

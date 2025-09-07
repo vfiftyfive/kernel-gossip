@@ -1,0 +1,25 @@
+#!/usr/bin/env bpftrace
+
+// Test script to discover available fields in tracepoints
+
+BEGIN {
+    printf("Discovering tracepoint fields...\n");
+}
+
+// Test cgroup_mkdir tracepoint
+tracepoint:cgroup:cgroup_mkdir {
+    printf("cgroup_mkdir fired\n");
+    // Try different field access patterns
+    printf("Path attempt 1: %s\n", str(args->path));
+    // Will add more attempts based on errors
+}
+
+// Test cgroup_attach_task tracepoint  
+tracepoint:cgroup:cgroup_attach_task {
+    printf("cgroup_attach_task: dst_id=%d pid=%d\n", args->dst_id, args->pid);
+}
+
+// Test sched_process_exec tracepoint
+tracepoint:sched:sched_process_exec {
+    printf("sched_process_exec: pid=%d comm=%s\n", pid, comm);
+}

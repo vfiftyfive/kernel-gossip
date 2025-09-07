@@ -107,6 +107,25 @@ pub async fn reconcile_kernel_whisper(
     let name = kw.name_any();
     info!("Reconciling KernelWhisper: {} with severity {:?}", name, kw.spec.severity);
     
+    // Check if pod still exists before processing
+    let pod_exists = {
+        use k8s_openapi::api::core::v1::Pod;
+        let namespace = kw.spec.namespace.as_str();
+        let pod_api: Api<Pod> = Api::namespaced(ctx.client.clone(), namespace);
+        match pod_api.get_opt(&kw.spec.pod_name).await {
+            Ok(pod_opt) => pod_opt.is_some(),
+            Err(_) => false, // Error accessing pod, assume it doesn't exist
+        }
+    };
+    
+    if !pod_exists {
+        info!(
+            "Pod {} no longer exists, keeping historical data but skipping active reconciliation",
+            kw.spec.pod_name
+        );
+        return Ok(Action::requeue(Duration::from_secs(300))); // Check again in 5 minutes
+    }
+    
     // Generate recommendations using the recommendation engine
     let recommendation_engine = RecommendationEngine::new();
     if let Some(recommendation) = recommendation_engine.analyze_kernel_whisper(&kw) {
@@ -236,9 +255,7 @@ pub fn build_status_update(recommendation: &Recommendation) -> String {
 pub fn build_status_update_no_action(message: &str) -> String {
     let timestamp = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC");
     format!(
-        "✅ STATUS: {} - System is healthy | 🕐 UPDATED: {}",
-        message,
-        timestamp
+        "✅ STATUS: {message} - System is healthy | 🕐 UPDATED: {timestamp}"
     )
 }
 

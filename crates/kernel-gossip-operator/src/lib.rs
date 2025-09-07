@@ -5,3 +5,4 @@ pub mod actions;
 pub mod crd;
 pub mod recommendation;
 pub mod ebpf;
+pub mod pod_watcher;

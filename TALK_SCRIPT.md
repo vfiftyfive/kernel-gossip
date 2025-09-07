@@ -595,4 +595,3 @@ async fn handle_cpu_throttle(payload: CpuThrottlePayload) -> Result<()> {
 ---
 
 *[Total word count: ~2,500 words | Speaking pace: ~140 words/minute | Total time: ~30 minutes including demos]*
-

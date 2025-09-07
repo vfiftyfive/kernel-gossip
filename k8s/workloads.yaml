@@ -1,0 +1,81 @@
+# Production Test Workloads for Kernel Gossip Demo
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-monitored
+  namespace: kernel-gossip
+  labels:
+    app: nginx-monitored
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-monitored
+  template:
+    metadata:
+      labels:
+        app: nginx-monitored
+      annotations:
+        kernel-gossip.io/monitor: "true"
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 200m    # Low limit to demonstrate throttling
+            memory: 128Mi
+        ports:
+        - containerPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment  
+metadata:
+  name: ddosify-load-generator
+  namespace: kernel-gossip
+  labels:
+    app: ddosify-load
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ddosify-load
+  template:
+    metadata:
+      labels:
+        app: ddosify-load
+    spec:
+      containers:
+      - name: ddosify
+        image: ddosify/ddosify:latest
+        command: ["ddosify"]
+        args:
+        - "-t" 
+        - "http://nginx-monitored.kernel-gossip.svc.cluster.local"
+        - "-d"
+        - "300"   # 5 minute load test
+        - "-n"
+        - "10000" # 10k requests
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-monitored
+  namespace: kernel-gossip
+spec:
+  selector:
+    app: nginx-monitored
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP

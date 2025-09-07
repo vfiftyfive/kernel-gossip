@@ -15,7 +15,7 @@ async fn test_memory_pressure_detection_e2e() {
     
     // Deploy a memory-intensive workload with unique name
     let timestamp = chrono::Utc::now().timestamp();
-    let pod_name = format!("memory-stress-e2e-{}", timestamp);
+    let pod_name = format!("memory-stress-e2e-{timestamp}");
     let workload = test_env.deploy_memory_stress_workload(&pod_name).await
         .expect("Failed to deploy test workload");
     
@@ -48,7 +48,7 @@ async fn test_memory_pressure_detection_e2e() {
     println!("Operator logs for pod {}: {}", workload.pod_name, logs);
     
     // For now, just check that we got logs (operator may not have specific memory recommendations)
-    assert!(!logs.is_empty() || whispers.len() > 0, 
+    assert!(!logs.is_empty() || !whispers.is_empty(), 
         "Either operator logs or KernelWhispers should exist");
     
     // Cleanup

@@ -79,10 +79,32 @@ spec:
             type: object
             description: Status of the KernelWhisper with recommendations
             properties:
-              message:
+              insight:
                 type: string
-                description: Human-readable status message with insights and recommendations
-              lastUpdated:
+                description: Key insight about the pod's performance
+              recommendation:
+                type: string
+                description: Recommended action to take
+              kernel_evidence:
+                type: string
+                description: Evidence from kernel monitoring
+              priority:
+                type: string
+                description: Priority level of the recommendation
+              metrics_comparison:
+                type: object
+                description: Comparison between kernel and metrics data
+                properties:
+                  kernel_cpu_usage:
+                    type: number
+                    description: CPU usage as measured by kernel
+                  metrics_cpu_usage:
+                    type: number
+                    description: CPU usage as reported by metrics
+                  discrepancy_percent:
+                    type: number
+                    description: Percentage difference between kernel and metrics
+              last_updated:
                 type: string
                 format: date-time
                 description: Last time the status was updated

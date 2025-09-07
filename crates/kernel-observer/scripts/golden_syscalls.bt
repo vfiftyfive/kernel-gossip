@@ -1,0 +1,35 @@
+#!/usr/bin/env bpftrace
+
+BEGIN {
+    printf("GOLDEN_SYSCALL_MONITOR_STARTED\n");
+}
+
+tracepoint:syscalls:sys_enter_clone {
+    printf("GOLDEN_SYSCALL type=clone pid=%d timestamp_ms=%llu\n", pid, nsecs / 1000000);
+}
+
+tracepoint:syscalls:sys_enter_setns {
+    printf("GOLDEN_SYSCALL type=setns pid=%d timestamp_ms=%llu\n", pid, nsecs / 1000000);
+}
+
+tracepoint:syscalls:sys_enter_mount {
+    printf("GOLDEN_SYSCALL type=mount pid=%d timestamp_ms=%llu\n", pid, nsecs / 1000000);
+}
+
+tracepoint:syscalls:sys_enter_write {
+    if (str(args->buf) =~ "cgroup") {
+        printf("GOLDEN_SYSCALL type=write pid=%d timestamp_ms=%llu\n", pid, nsecs / 1000000);
+    }
+}
+
+tracepoint:syscalls:sys_enter_execve {
+    printf("GOLDEN_SYSCALL type=execve pid=%d timestamp_ms=%llu\n", pid, nsecs / 1000000);
+}
+
+tracepoint:syscalls:sys_enter_openat {
+    printf("GOLDEN_SYSCALL type=openat pid=%d timestamp_ms=%llu\n", pid, nsecs / 1000000);
+}
+
+END {
+    printf("GOLDEN_SYSCALL_MONITOR_ENDED\n");
+}

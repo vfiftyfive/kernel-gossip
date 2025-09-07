@@ -37,8 +37,8 @@ async fn test_pod_creation_tracing() {
         .expect("Failed to get operator logs");
     
     // We expect insights about the pod creation syscalls
-    assert!(logs.contains("syscall") || logs.contains(&pod_name) || logs.len() > 0,
-        "Expected operator logs to contain pod creation insights, but got: {}", logs);
+    assert!(logs.contains("syscall") || logs.contains(&pod_name) || !logs.is_empty(),
+        "Expected operator logs to contain pod creation insights, but got: {logs}");
     
     // Clean up
     test_env.cleanup_workload(&workload).await

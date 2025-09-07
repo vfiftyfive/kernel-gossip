@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-nginx
+  namespace: kernel-gossip
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-nginx
+  template:
+    metadata:
+      labels:
+        app: demo-nginx
+      annotations:
+        kernel-gossip.io/monitor: "true"
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "128Mi"
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-nginx-service
+  namespace: kernel-gossip
+spec:
+  selector:
+    app: demo-nginx
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP

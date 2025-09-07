@@ -1,0 +1,31 @@
+# Build directly in bpftrace image to avoid GLIBC version mismatch
+FROM quay.io/iovisor/bpftrace:latest
+
+# Set timezone non-interactively
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# Install Rust and build dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.82
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Copy and build the application
+WORKDIR /build
+COPY crates/kernel-observer/Cargo.toml ./
+COPY crates/kernel-observer/src ./src/
+RUN cargo build --release
+
+# Move binary to expected location
+RUN mv /build/target/release/kernel-observer /usr/local/bin/
+
+# Set binary as entrypoint
+ENTRYPOINT ["/usr/local/bin/kernel-observer"]

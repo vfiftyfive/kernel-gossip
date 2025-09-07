@@ -1,12 +1,11 @@
 use anyhow::Result;
-use kube::{Api, Client, api::ListParams};
+use kube::{Api, Client};
 use kernel_gossip_types::{
     PodBirthCertificate, TimelineEntry, KernelStats, Actor,
     KernelWhisper, KernelTruth, MetricsLie,
 };
 use crate::webhook::{PodCreationPayload, CpuThrottlePayload};
 use tracing::{info, warn};
-use k8s_openapi::api::core::v1::Pod;
 use serde::{Deserialize, Serialize};
 
 // Metrics API types
@@ -40,7 +39,7 @@ async fn fetch_pod_metrics(_client: &Client, pod_name: &str, namespace: &str) ->
     use std::process::Command;
     
     let output = Command::new("kubectl")
-        .args(&["top", "pod", pod_name, "-n", namespace, "--no-headers"])
+        .args(["top", "pod", pod_name, "-n", namespace, "--no-headers"])
         .output();
     
     match output {
@@ -53,7 +52,7 @@ async fn fetch_pod_metrics(_client: &Client, pod_name: &str, namespace: &str) ->
             }
             
             // Parse output: "pod-name   100m   256Mi"
-            let parts: Vec<&str> = stdout.trim().split_whitespace().collect();
+            let parts: Vec<&str> = stdout.split_whitespace().collect();
             if parts.len() >= 2 {
                 let cpu_str = parts[1];
                 let cpu_millis = if cpu_str.ends_with('m') {
@@ -89,18 +88,30 @@ pub fn build_pod_birth_certificate(payload: &PodCreationPayload) -> PodBirthCert
         .unwrap_or_else(|_| chrono::Utc::now().into())
         .timestamp_millis() as u64;
     
-    let timeline = vec![
-        TimelineEntry {
-            timestamp_ms,
-            actor: Actor::Kernel,
-            action: "Pod creation started".to_string(),
-            details: Some(format!("Total syscalls: {}", payload.total_syscalls)),
-        },
-    ];
+    // Use timeline from payload if available, otherwise create a basic one
+    let timeline = if !payload.timeline.is_empty() {
+        // Convert webhook timeline events to CRD timeline entries
+        payload.timeline.iter().map(|event| {
+            TimelineEntry {
+                timestamp_ms: event.timestamp_ms,
+                actor: Actor::Kernel,
+                action: event.action.clone(),
+            }
+        }).collect()
+    } else {
+        // Fallback to basic timeline
+        vec![
+            TimelineEntry {
+                timestamp_ms,
+                actor: Actor::Kernel,
+                action: format!("Pod creation started - Total syscalls: {}", payload.total_syscalls),
+            },
+        ]
+    };
 
     let kernel_stats = KernelStats {
         total_syscalls: payload.total_syscalls as u32,
-        namespaces_created: 1, // One namespace per pod
+        namespaces_created: payload.namespace_ops.min(255) as u8,
         cgroup_writes: payload.cgroup_writes as u32,
         iptables_rules: 0, // Not tracked in payload
         total_duration_ms: payload.duration_ns / 1_000_000, // Convert ns to ms

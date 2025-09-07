@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ddosify-load-test
+  namespace: kernel-gossip
+spec:
+  template:
+    metadata:
+      labels:
+        app: ddosify-load
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: ddosify
+        image: ddosify/ddosify:latest
+        command:
+        - ddosify
+        - -t
+        - http://nginx-monitored.kernel-gossip.svc.cluster.local
+        - -d
+        - "60"    # 1 minute test
+        - -n  
+        - "5000"  # 5k requests
+        - -c
+        - "10"    # 10 concurrent connections
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi

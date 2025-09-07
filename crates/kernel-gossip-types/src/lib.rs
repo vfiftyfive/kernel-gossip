@@ -38,12 +38,10 @@ mod tests {
             100,
             Actor::Scheduler,
             "Pod assigned to node",
-            Some("node-1 selected based on resources"),
         );
 
         assert_eq!(entry.timestamp_ms(), 100);
         assert_eq!(entry.actor(), &Actor::Scheduler);
-        assert!(entry.details().is_some());
     }
 
     #[test]

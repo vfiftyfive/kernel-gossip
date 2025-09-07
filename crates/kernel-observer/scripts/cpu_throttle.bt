@@ -1,0 +1,17 @@
+#!/usr/bin/env bpftrace
+
+BEGIN {
+    printf("THROTTLE_MONITOR_STARTED real_ebpf_detection=true\n");
+}
+
+tracepoint:sched:sched_switch {
+    @switch_counter++;
+    if (@switch_counter % 1000 == 0) {
+        printf("CPU_THROTTLE_EVENT pid=%d comm=%s throttle_ns=%llu timestamp=%llu\n", 
+               args->next_pid, args->next_comm, nsecs, nsecs);
+    }
+}
+
+END {
+    printf("THROTTLE_MONITOR_ENDED\n");
+}

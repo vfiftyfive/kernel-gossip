@@ -27,7 +27,7 @@ mod server_tests {
         // Test health endpoint
         let client = reqwest::Client::new();
         let resp = client
-            .get(format!("http://{}/health", addr))
+            .get(format!("http://{addr}/health"))
             .send()
             .await
             .expect("Failed to send request");
@@ -62,7 +62,7 @@ mod server_tests {
         // Test metrics endpoint
         let client = reqwest::Client::new();
         let resp = client
-            .get(format!("http://{}/metrics", addr))
+            .get(format!("http://{addr}/metrics"))
             .send()
             .await
             .expect("Failed to send request");

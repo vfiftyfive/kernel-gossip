@@ -15,7 +15,7 @@ async fn test_cpu_throttle_detection_e2e() {
     
     // Deploy a CPU-intensive workload with unique name
     let timestamp = chrono::Utc::now().timestamp();
-    let pod_name = format!("cpu-stress-e2e-{}", timestamp);
+    let pod_name = format!("cpu-stress-e2e-{timestamp}");
     let workload = test_env.deploy_cpu_stress_workload(&pod_name).await
         .expect("Failed to deploy test workload");
     

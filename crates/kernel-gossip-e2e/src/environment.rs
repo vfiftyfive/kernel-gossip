@@ -265,7 +265,7 @@ impl E2ETestEnvironment {
         // Get logs from first operator pod
         let operator_pod = &operator_pods.items[0];
         let logs = pods.logs(
-            &operator_pod.metadata.name.as_ref().unwrap(),
+            operator_pod.metadata.name.as_ref().unwrap(),
             &Default::default()
         ).await?;
         

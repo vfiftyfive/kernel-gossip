@@ -2,8 +2,7 @@
 members = [
     "crates/kernel-gossip-types",
     "crates/kernel-gossip-operator",
-    "crates/kernel-gossip-e2e",
-    "crates/kernel-observer",
+    "crates/kernel-gossip-e2e", "crates/kernel-observer",
 ]
 resolver = "2"
 

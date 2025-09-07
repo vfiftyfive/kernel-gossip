@@ -34,8 +34,8 @@ async fn test_network_issue_detection() {
     
     // For network issues, we expect different insights than CPU throttling
     // The operator should generate insights about the detected issue
-    assert!(logs.contains("INSIGHT") || logs.contains(&pod_name) || logs.len() > 0,
-        "Expected operator logs to contain insights, but got: {}", logs);
+    assert!(logs.contains("INSIGHT") || logs.contains(&pod_name) || !logs.is_empty(),
+        "Expected operator logs to contain insights, but got: {logs}");
     
     // Clean up
     test_env.cleanup_workload(&workload).await

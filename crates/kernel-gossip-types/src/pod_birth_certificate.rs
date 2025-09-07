@@ -23,7 +23,6 @@ pub struct TimelineEntry {
     pub timestamp_ms: u64,
     pub actor: Actor,
     pub action: String,
-    pub details: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq)]
@@ -86,12 +85,11 @@ impl PodBirthCertificate {
 }
 
 impl TimelineEntry {
-    pub fn new(timestamp_ms: u64, actor: Actor, action: &str, details: Option<&str>) -> Self {
+    pub fn new(timestamp_ms: u64, actor: Actor, action: &str) -> Self {
         Self {
             timestamp_ms,
             actor,
             action: action.to_string(),
-            details: details.map(|s| s.to_string()),
         }
     }
 
@@ -103,7 +101,4 @@ impl TimelineEntry {
         &self.actor
     }
 
-    pub fn details(&self) -> Option<&str> {
-        self.details.as_deref()
-    }
 }

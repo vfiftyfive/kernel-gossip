@@ -10,6 +10,8 @@ async fn main() -> anyhow::Result<()> {
 
     // Create K8s client
     let client = Client::try_default().await?;
+    let client_for_controller = client.clone();
+    let client_for_watcher = client.clone();
 
     // Create servers
     let webhook_server = kernel_gossip_operator::server::create_server().await?;
@@ -20,8 +22,15 @@ async fn main() -> anyhow::Result<()> {
 
     // Start CRD controllers
     let controller_handle = tokio::spawn(async move {
-        if let Err(e) = kernel_gossip_operator::crd::run_controllers(client).await {
+        if let Err(e) = kernel_gossip_operator::crd::run_controllers(client_for_controller).await {
             error!("Controller error: {}", e);
+        }
+    });
+
+    // Start pod watcher
+    let pod_watcher_handle = tokio::spawn(async move {
+        if let Err(e) = kernel_gossip_operator::pod_watcher::run_pod_watcher(client_for_watcher).await {
+            error!("Pod watcher error: {}", e);
         }
     });
 
@@ -35,6 +44,9 @@ async fn main() -> anyhow::Result<()> {
         }
         result = controller_handle => {
             error!("Controllers stopped: {:?}", result);
+        }
+        result = pod_watcher_handle => {
+            error!("Pod watcher stopped: {:?}", result);
         }
     }
 
