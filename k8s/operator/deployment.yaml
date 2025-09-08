@@ -23,8 +23,8 @@ spec:
       serviceAccountName: kernel-gossip-operator
       containers:
       - name: operator
-        image: gcr.io/scaleops-dev-rel/kernel-gossip-operator:latest  # TODO: Update with actual image
-        imagePullPolicy: Always
+        image: gcr.io/scaleops-dev-rel/kernel-gossip-operator:minikube-arm64
+        imagePullPolicy: Never
         ports:
         - name: webhook
           containerPort: 8080

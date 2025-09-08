@@ -11,23 +11,33 @@ use kube::Client;
 use std::sync::Arc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum PixieWebhookPayload {
-    PodCreation(PodCreationPayload),
-    CpuThrottle(CpuThrottlePayload),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PodCreationPayload {
-    pub timestamp: String,
-    pub pod_name: String,
-    pub namespace: String,
-    pub total_syscalls: u64,
-    pub namespace_ops: u64,
-    pub cgroup_writes: u64,
-    pub duration_ns: u64,
-    #[serde(default)]
-    pub timeline: Vec<TimelineEvent>,
+#[serde(rename_all = "snake_case")]
+pub enum EbpfWebhookPayload {
+    #[serde(rename = "cpu_throttle")]
+    CpuThrottle {
+        pod_name: String,
+        namespace: String,
+        container_name: String,
+        throttle_percentage: f64,
+        actual_cpu_usage: f64,
+        reported_cpu_usage: f64,
+        period_seconds: u64,
+        ebpf_detection: bool,
+        throttle_ns: u64,
+        timestamp: String,
+    },
+    #[serde(rename = "pod_creation")]
+    PodCreation {
+        pod_name: String,
+        namespace: String,
+        total_syscalls: u64,
+        namespace_ops: u64,
+        cgroup_writes: u64,
+        duration_ns: u64,
+        timeline: Vec<TimelineEvent>,
+        ebpf_detection: bool,
+        timestamp: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,9 +46,22 @@ pub struct TimelineEvent {
     pub action: String,
 }
 
+// Payload structs for actions module compatibility
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PodCreationPayload {
+    pub pod_name: String,
+    pub namespace: String,
+    pub total_syscalls: u64,
+    pub namespace_ops: u64,
+    pub cgroup_writes: u64,
+    pub duration_ns: u64,
+    pub timeline: Vec<TimelineEvent>,
+    pub ebpf_detection: bool,
+    pub timestamp: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CpuThrottlePayload {
-    pub timestamp: String,
     pub pod_name: String,
     pub namespace: String,
     pub container_name: String,
@@ -46,6 +69,9 @@ pub struct CpuThrottlePayload {
     pub actual_cpu_usage: f64,
     pub reported_cpu_usage: f64,
     pub period_seconds: u64,
+    pub ebpf_detection: bool,
+    pub throttle_ns: u64,
+    pub timestamp: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -56,14 +82,14 @@ struct WebhookResponse {
 
 pub fn create_webhook_router(client: Arc<Client>) -> Router {
     Router::new()
-        .route("/webhook/pixie", post(handle_pixie_webhook))
+        .route("/webhook/ebpf", post(handle_ebpf_webhook))
         .with_state(client)
 }
 
-async fn handle_pixie_webhook(
+async fn handle_ebpf_webhook(
     State(client): State<Arc<Client>>,
     headers: HeaderMap,
-    Json(payload): Json<PixieWebhookPayload>,
+    Json(payload): Json<EbpfWebhookPayload>,
 ) -> Result<Json<WebhookResponse>, WebhookError> {
     // Validate content-type
     let content_type = headers
@@ -75,10 +101,10 @@ async fn handle_pixie_webhook(
         return Err(WebhookError("Invalid content-type".to_string()));
     }
     match payload {
-        PixieWebhookPayload::PodCreation(data) => {
+        EbpfWebhookPayload::PodCreation { pod_name, namespace, total_syscalls, namespace_ops, cgroup_writes, duration_ns, timeline, ebpf_detection, timestamp } => {
             info!(
                 "Received pod creation event for {}/{}",
-                data.namespace, data.pod_name
+                namespace, pod_name
             );
             
             // For pod creation events, we should create the certificate
@@ -87,17 +113,17 @@ async fn handle_pixie_webhook(
             // we should capture the kernel truth about pod creation
             
             // Skip system namespaces
-            if data.namespace == "kube-system" || 
-               data.namespace == "kube-public" || 
-               data.namespace == "kube-node-lease" ||
-               data.namespace == "gke-gmp-system" ||
-               data.namespace == "gmp-system" ||
-               data.namespace == "gke-managed-filestorecsi" {
+            if namespace == "kube-system" || 
+               namespace == "kube-public" || 
+               namespace == "kube-node-lease" ||
+               namespace == "gke-gmp-system" ||
+               namespace == "gmp-system" ||
+               namespace == "gke-managed-filestorecsi" {
                 info!("Skipping system namespace pod {}/{}", 
-                      data.namespace, data.pod_name);
+                      namespace, pod_name);
                 return Ok(Json(WebhookResponse {
                     status: "skipped".to_string(),
-                    message: format!("System namespace pod {}", data.pod_name),
+                    message: format!("System namespace pod {pod_name}"),
                 }));
             }
             
@@ -105,10 +131,10 @@ async fn handle_pixie_webhook(
             use kube::api::Api;
             use k8s_openapi::api::core::v1::Pod;
             
-            let pods: Api<Pod> = Api::namespaced(client.as_ref().clone(), &data.namespace);
+            let pods: Api<Pod> = Api::namespaced(client.as_ref().clone(), &namespace);
             
             // Check if we should monitor this pod (default to true for pod creation)
-            let should_monitor = match pods.get(&data.pod_name).await {
+            let should_monitor = match pods.get(&pod_name).await {
                 Ok(pod) => {
                     // Pod exists, check annotation
                     pod.metadata
@@ -122,22 +148,35 @@ async fn handle_pixie_webhook(
                     // Pod doesn't exist yet - this is expected for creation events
                     // Default to creating certificate for non-system namespaces
                     info!("Pod {}/{} not found yet (expected for creation event), creating certificate", 
-                          data.namespace, data.pod_name);
+                          namespace, pod_name);
                     true
                 }
             };
             
             if !should_monitor {
                 info!("Pod {}/{} does not have monitoring annotation, skipping", 
-                      data.namespace, data.pod_name);
+                      namespace, pod_name);
                 return Ok(Json(WebhookResponse {
                     status: "skipped".to_string(),
-                    message: format!("Pod {} not configured for monitoring", data.pod_name),
+                    message: format!("Pod {pod_name} not configured for monitoring"),
                 }));
             }
             
+            // Create temporary payload structure for the function
+            let payload = PodCreationPayload {
+                pod_name,
+                namespace,
+                total_syscalls,
+                namespace_ops,
+                cgroup_writes,
+                duration_ns,
+                timeline,
+                ebpf_detection,
+                timestamp,
+            };
+            
             // Create PodBirthCertificate CRD
-            match crate::actions::create_pod_birth_certificate(&client, &data).await {
+            match crate::actions::create_pod_birth_certificate(&client, &payload).await {
                 Ok(pbc) => {
                     info!("Successfully created PodBirthCertificate: {:?}", pbc.metadata.name);
                 }
@@ -147,20 +186,20 @@ async fn handle_pixie_webhook(
                 }
             }
         }
-        PixieWebhookPayload::CpuThrottle(data) => {
+        EbpfWebhookPayload::CpuThrottle { pod_name, namespace, container_name, throttle_percentage, actual_cpu_usage, reported_cpu_usage, period_seconds, ebpf_detection, throttle_ns, timestamp } => {
             info!(
                 "Received CPU throttle event for {}/{}: {}%",
-                data.namespace, data.pod_name, data.throttle_percentage
+                namespace, pod_name, throttle_percentage
             );
             
             // Check if pod has monitoring annotation
             use kube::api::Api;
             use k8s_openapi::api::core::v1::Pod;
             
-            let pods: Api<Pod> = Api::namespaced(client.as_ref().clone(), &data.namespace);
+            let pods: Api<Pod> = Api::namespaced(client.as_ref().clone(), &namespace);
             
             // Try to get the pod and check its annotations
-            match pods.get(&data.pod_name).await {
+            match pods.get(&pod_name).await {
                 Ok(pod) => {
                     let should_monitor = pod.metadata
                         .annotations
@@ -171,26 +210,26 @@ async fn handle_pixie_webhook(
                     
                     if !should_monitor {
                         info!("Pod {}/{} does not have monitoring annotation, skipping", 
-                              data.namespace, data.pod_name);
+                              namespace, pod_name);
                         return Ok(Json(WebhookResponse {
                             status: "skipped".to_string(),
-                            message: format!("Pod {} not configured for monitoring", data.pod_name),
+                            message: format!("Pod {pod_name} not configured for monitoring"),
                         }));
                     }
                 }
                 Err(e) => {
                     // Pod doesn't exist or is a system process - skip for non-pod processes
                     info!("Could not find pod {}/{}, likely a system process: {}", 
-                          data.namespace, data.pod_name, e);
+                          namespace, pod_name, e);
                     return Ok(Json(WebhookResponse {
                         status: "skipped".to_string(),
-                        message: format!("Pod {} not found or is system process", data.pod_name),
+                        message: format!("Pod {pod_name} not found or is system process"),
                     }));
                 }
             }
             
             // Create KernelWhisper CRD only for annotated pods
-            match crate::actions::create_kernel_whisper(&client, &data).await {
+            match crate::actions::create_kernel_whisper(&client, &CpuThrottlePayload { pod_name, namespace, container_name, throttle_percentage, actual_cpu_usage, reported_cpu_usage, period_seconds, ebpf_detection, throttle_ns, timestamp }).await {
                 Ok(kw) => {
                     info!("Successfully created KernelWhisper: {:?}", kw.metadata.name);
                 }

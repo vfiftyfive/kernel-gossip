@@ -1,0 +1,11 @@
+# Simple ARM64 Dockerfile using prebuilt binary
+FROM alpine:latest
+
+# Install ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates
+
+# Copy prebuilt ARM64 binary
+COPY kernel-gossip-operator /usr/local/bin/kernel-gossip-operator
+RUN chmod +x /usr/local/bin/kernel-gossip-operator
+
+ENTRYPOINT ["/usr/local/bin/kernel-gossip-operator"]

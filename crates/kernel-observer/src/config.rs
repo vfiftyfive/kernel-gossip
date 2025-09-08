@@ -15,7 +15,7 @@ impl Config {
     pub fn from_env() -> Result<Self> {
         Ok(Config {
             webhook_url: env::var("WEBHOOK_URL")
-                .unwrap_or_else(|_| "http://kernel-gossip-operator.kernel-gossip.svc.cluster.local:8080/webhook/pixie".to_string()),
+                .unwrap_or_else(|_| "http://kernel-gossip-operator.kernel-gossip.svc.cluster.local:8080/webhook/ebpf".to_string()),
             namespace: env::var("NAMESPACE").unwrap_or_else(|_| "kernel-gossip".to_string()),
             configmap_name: env::var("CONFIGMAP_NAME").unwrap_or_else(|_| "ebpf-monitored-pods".to_string()),
             log_level: env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string()),

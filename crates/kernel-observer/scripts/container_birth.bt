@@ -1,0 +1,48 @@
+#!/usr/bin/env bpftrace
+
+BEGIN {
+    printf("CONTAINER_BIRTH_MONITOR_STARTED\n");
+}
+
+// Track container runtime processes
+tracepoint:sched:sched_process_exec
+/comm == "runc" || comm == "crun"/ {
+    @container_start[pid] = nsecs;
+    @container_runtime[pid] = 1;
+    printf("CONTAINER_RUNTIME_START pid=%d comm=%s timestamp_ms=%llu\n",
+           pid, comm, nsecs / 1000000);
+}
+
+// Track the first exec after runc (the container main process)
+tracepoint:sched:sched_process_fork {
+    if (@container_runtime[args->parent_pid] == 1) {
+        @container_child[args->child_pid] = args->parent_pid;
+    }
+}
+
+// Detect container main process (first non-runtime exec from runtime parent)
+tracepoint:sched:sched_process_exec {
+    $parent = @container_child[pid];
+    if ($parent > 0 && comm != "runc" && comm != "crun") {
+        printf("CONTAINER_MAIN pid=%d ppid=%d comm=%s timestamp_ms=%llu\n",
+               pid, $parent, comm, nsecs / 1000000);
+        
+        // Clear tracking for this lineage
+        delete(@container_child[pid]);
+    }
+}
+
+// Track container runtime exit with syscall counts
+tracepoint:sched:sched_process_exit
+/@container_runtime[pid] == 1/ {
+    $duration_ns = nsecs - @container_start[pid];
+    printf("CONTAINER_BIRTH_COMPLETE pid=%d comm=%s duration_ns=%llu timestamp_ms=%llu\n",
+           pid, comm, $duration_ns, nsecs / 1000000);
+    
+    delete(@container_start[pid]);
+    delete(@container_runtime[pid]);
+}
+
+END {
+    printf("CONTAINER_BIRTH_MONITOR_ENDED\n");
+}

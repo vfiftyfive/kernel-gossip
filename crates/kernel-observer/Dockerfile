@@ -1,28 +1,20 @@
-# Multi-stage build: Rust compilation
-FROM rust:1.82-slim AS builder
+# Build stage  
+FROM rust:1.75 AS builder
 
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    pkg-config \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /build
+WORKDIR /app
 COPY Cargo.toml ./
 COPY src ./src/
 RUN cargo build --release
 
-# Final runtime image: bpftrace + compiled Rust binary
-FROM quay.io/iovisor/bpftrace:latest
+# Runtime stage - Ubuntu with bpftrace
+FROM ubuntu:22.04
 
-# Install required runtime libraries
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    libssl1.1 \
-    && rm -rf /var/lib/apt/lists/*
+# Install bpftrace and dependencies
+RUN apt-get update && \
+    apt-get install -y bpftrace ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy Rust binary from builder stage
-COPY --from=builder /build/target/release/kernel-observer /usr/local/bin/
+# Copy the binary
+COPY --from=builder /app/target/release/kernel-observer /usr/local/bin/kernel-observer
 
-# Set binary as entrypoint
 ENTRYPOINT ["/usr/local/bin/kernel-observer"]

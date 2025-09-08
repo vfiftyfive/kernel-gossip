@@ -1,0 +1,8 @@
+# Simple Dockerfile using prebuilt ARM64 binary
+FROM quay.io/iovisor/bpftrace:latest
+
+# Copy prebuilt ARM64 binary
+COPY kernel-observer /usr/local/bin/kernel-observer
+RUN chmod +x /usr/local/bin/kernel-observer
+
+ENTRYPOINT ["/usr/local/bin/kernel-observer"]

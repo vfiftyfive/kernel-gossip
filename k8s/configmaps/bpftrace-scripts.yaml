@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bpftrace-scripts
+  namespace: kernel-gossip
+data:
+  monitoring.bt: |
+    #!/usr/bin/env bpftrace
+    
+    BEGIN {
+        printf("KERNEL_MONITOR_STARTED golden_syscalls=enabled cpu_throttling=enabled\n");
+    }
+    
+    // ===== CONTAINER GOLDEN SYSCALLS =====
+    // Track process creation by container runtimes
+    tracepoint:sched:sched_process_fork {
+        if (comm == "runc" || comm == "containerd-shim" || comm == "crun") {
+            @birth_start[args->child_pid] = nsecs;
+            @parent_runtime[args->child_pid] = comm;
+            printf("GOLDEN_SYSCALL syscall=fork pid=%d parent_pid=%d comm=%s timestamp_ms=%llu\n",
+                   args->child_pid, args->parent_pid, comm, nsecs / 1000000);
+        }
+    }
+    
+    // Track exec - the most important golden syscall (container main process starts)
+    tracepoint:sched:sched_process_exec {
+        // If this process has a birth_start, it's part of container creation
+        if (@birth_start[pid] > 0) {
+            $duration_ns = nsecs - @birth_start[pid];
+            printf("GOLDEN_SYSCALL syscall=exec pid=%d comm=%s duration_ns=%llu timestamp_ms=%llu\n",
+                   pid, comm, $duration_ns, nsecs / 1000000);
+            
+            // This is the container main process - birth complete!
+            if (comm != "runc" && comm != "crun" && comm != "containerd-shim") {
+                printf("CONTAINER_BIRTH_COMPLETE pid=%d comm=%s total_duration_ns=%llu timestamp_ms=%llu\n",
+                       pid, comm, $duration_ns, nsecs / 1000000);
+                delete(@birth_start[pid]);
+                delete(@parent_runtime[pid]);
+            }
+        }
+    }
+    
+    // ===== CPU THROTTLING DETECTION (SIMPLIFIED) =====
+    tracepoint:sched:sched_switch {
+        if (args->prev_state == 0 && pid > 0) { // TASK_RUNNING but preempted
+            $now_ms = nsecs / 1000000;
+            
+            @last_switch[pid] = @current_switch[pid];
+            @current_switch[pid] = $now_ms;
+            
+            if (@last_switch[pid] > 0) {
+                $interval = $now_ms - @last_switch[pid];
+                // Frequent switches under 10ms indicate throttling
+                if ($interval > 0 && $interval < 10) {
+                    @throttle_count[pid]++;
+                    
+                    // Report after multiple quick switches
+                    if (((uint64)@throttle_count[pid]) % 10 == 0) {
+                        printf("CPU_THROTTLE_EVENT pid=%d comm=%s throttle_ns=%llu timestamp_ms=%llu\n",
+                               pid, comm, $interval * 1000000, $now_ms);
+                    }
+                } else {
+                    if ($interval > 100) {
+                        @throttle_count[pid] = 0; // Reset counter
+                    }
+                }
+            }
+        }
+    }
+    
+    END {
+        printf("MONITOR_ENDED\n");
+        clear(@birth_start);
+        clear(@parent_runtime);
+        clear(@last_switch);
+        clear(@current_switch);
+        clear(@throttle_count);
+    }

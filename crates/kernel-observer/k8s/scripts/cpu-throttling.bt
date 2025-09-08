@@ -1,0 +1,32 @@
+BEGIN {
+    printf("KERNEL_MONITOR_STARTED container_tracking=fork_based cpu_throttling=enabled\n");
+}
+
+// CPU throttling detection using sched_switch
+tracepoint:sched:sched_switch {
+    // When a process is switched out and marked as throttled 
+    if (args->prev_state == 0 && pid > 0) { // TASK_RUNNING but being preempted
+        $now_ms = nsecs / 1000000;
+        
+        // Check if this looks like CPU throttling by tracking frequent context switches
+        @last_switch[pid] = @current_switch[pid];
+        @current_switch[pid] = $now_ms;
+        
+        if (@last_switch[pid] > 0) {
+            $interval = $now_ms - @last_switch[pid];
+            // Frequent switches under 10ms could indicate throttling
+            if ($interval > 0 && $interval < 10) {
+                @throttle_count[pid]++;
+                
+                // Report throttling after several quick switches
+                if (((uint64)@throttle_count[pid]) % 10 == 0) {
+                    printf("CPU_THROTTLE_EVENT pid=%d comm=%s throttle_ns=%llu timestamp_ms=%llu\n",
+                           pid, comm, $interval * 1000000, $now_ms);
+                }
+            } else if ($interval > 100) {
+                // Reset counter for long intervals
+                @throttle_count[pid] = 0;
+            }
+        }
+    }
+}

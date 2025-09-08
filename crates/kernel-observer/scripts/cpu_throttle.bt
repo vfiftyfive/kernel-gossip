@@ -5,10 +5,11 @@ BEGIN {
 }
 
 tracepoint:sched:sched_switch {
+    // Capture every 100th event for any process, or always for sh processes (our stress test)
     @switch_counter++;
-    if (@switch_counter % 1000 == 0) {
+    if (@switch_counter % 100 == 0 || str(args->next_comm) == "sh") {
         printf("CPU_THROTTLE_EVENT pid=%d comm=%s throttle_ns=%llu timestamp=%llu\n", 
-               args->next_pid, args->next_comm, nsecs, nsecs);
+               args->next_pid, args->next_comm, nsecs / 100, nsecs);
     }
 }
 

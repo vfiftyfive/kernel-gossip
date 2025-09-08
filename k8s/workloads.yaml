@@ -23,49 +23,47 @@ spec:
         image: nginx:alpine
         resources:
           requests:
-            cpu: 100m
+            cpu: 10m     # Low request to allow throttling
             memory: 64Mi
           limits:
-            cpu: 200m    # Low limit to demonstrate throttling
+            cpu: 50m     # Very low limit to demonstrate throttling
             memory: 128Mi
         ports:
         - containerPort: 80
 ---
-apiVersion: apps/v1
-kind: Deployment  
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: ddosify-load-generator
+  name: ddosify-load-test
   namespace: kernel-gossip
   labels:
-    app: ddosify-load
+    app: ddosify-load-job
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: ddosify-load
   template:
     metadata:
       labels:
-        app: ddosify-load
+        app: ddosify-load-job
     spec:
+      restartPolicy: Never  # Don't restart when job completes - prevents CrashLoopBackOff
       containers:
       - name: ddosify
         image: ddosify/ddosify:latest
         command: ["ddosify"]
-        args:
-        - "-t" 
+        args: 
+        - "-t"
         - "http://nginx-monitored.kernel-gossip.svc.cluster.local"
         - "-d"
-        - "300"   # 5 minute load test
-        - "-n"
-        - "10000" # 10k requests
+        - "120"   # 2 minute load test (demo-friendly duration)
+        - "-n" 
+        - "5000"  # 5000 requests
         resources:
           requests:
-            cpu: 100m
-            memory: 64Mi
+            cpu: "100m"
+            memory: "64Mi"
           limits:
-            cpu: 200m
-            memory: 128Mi
+            cpu: "200m"
+            memory: "128Mi"
+  backoffLimit: 2  # Allow 2 retries if job fails
 ---
 apiVersion: v1
 kind: Service

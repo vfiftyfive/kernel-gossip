@@ -1,6 +1,7 @@
 use reqwest::Client;
 use anyhow::Result;
 use tracing::{info, error};
+use serde_json::json;
 use crate::parser::EbpfEvent;
 
 #[derive(Clone)]
@@ -20,6 +21,7 @@ impl WebhookClient {
     pub async fn send_event(&self, event: EbpfEvent) -> Result<()> {
         info!("Sending eBPF event to operator: {:?}", event);
         
+        // Send the event directly - operator expects untagged enum
         let response = self
             .client
             .post(&self.webhook_url)

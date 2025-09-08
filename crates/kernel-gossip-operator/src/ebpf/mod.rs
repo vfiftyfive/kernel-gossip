@@ -35,6 +35,8 @@ pub mod bpftrace {
                 } else if line.contains("cgroup") {
                     golden.cgroup_writes += 1;
                 }
+            } else if line.contains("cgroup write detected") {
+                golden.cgroup_writes += 1;
             }
         }
         

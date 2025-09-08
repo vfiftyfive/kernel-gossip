@@ -50,19 +50,22 @@ spec:
       serviceAccountName: kernel-observer
       hostPID: true
       hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       tolerations:
       - operator: Exists
       containers:
       - name: kernel-observer
-        image: gcr.io/scaleops-dev-rel/kernel-observer:latest
-        imagePullPolicy: Always
+        image: gcr.io/scaleops-dev-rel/kernel-observer:ubuntu-bpftrace-complete
+        imagePullPolicy: Never
         env:
         - name: WEBHOOK_URL
-          value: "http://kernel-gossip-operator.kernel-gossip.svc.cluster.local:8080/webhook/pixie"
+          value: "http://kernel-gossip-operator.kernel-gossip.svc.cluster.local:8080/webhook/ebpf"
         - name: NAMESPACE
           value: "kernel-gossip"
         - name: RUST_LOG
-          value: "info"
+          value: "debug"
+        - name: BPFTRACE_SCRIPT
+          value: "monitoring.bt"
         securityContext:
           privileged: true
           capabilities:
@@ -75,11 +78,20 @@ spec:
           mountPath: /sys/kernel/debug
         - name: tracefs
           mountPath: /sys/kernel/tracing
+        - name: btf
+          mountPath: /sys/kernel/btf
+          readOnly: true
+        - name: kernel-modules
+          mountPath: /lib/modules
+          readOnly: true
         - name: cgroup
           mountPath: /sys/fs/cgroup
           readOnly: true
         - name: proc
           mountPath: /proc
+          readOnly: true
+        - name: bpftrace-scripts
+          mountPath: /etc/bpftrace-scripts
           readOnly: true
         resources:
           requests:
@@ -97,6 +109,14 @@ spec:
         hostPath:
           path: /sys/kernel/tracing
           type: DirectoryOrCreate
+      - name: btf
+        hostPath:
+          path: /sys/kernel/btf
+          type: Directory
+      - name: kernel-modules
+        hostPath:
+          path: /lib/modules
+          type: Directory
       - name: cgroup
         hostPath:
           path: /sys/fs/cgroup
@@ -105,5 +125,8 @@ spec:
         hostPath:
           path: /proc
           type: Directory
+      - name: bpftrace-scripts
+        configMap:
+          name: bpftrace-scripts
       nodeSelector:
         kubernetes.io/os: linux

@@ -1,0 +1,28 @@
+# Multi-stage build for ARM64 Linux
+FROM --platform=$BUILDPLATFORM rust:1.70 as builder
+
+# Install cross-compilation tools
+RUN apt-get update && apt-get install -y \
+    gcc-aarch64-linux-gnu \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up cross-compilation environment
+ENV CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+
+RUN rustup target add aarch64-unknown-linux-gnu
+
+WORKDIR /app
+COPY Cargo.toml ./
+COPY src ./src/
+COPY ../kernel-gossip-types ../kernel-gossip-types
+
+# Build for ARM64 Linux
+RUN cargo build --release --target aarch64-unknown-linux-gnu
+
+# Runtime stage - ARM64
+FROM --platform=linux/arm64 alpine:latest
+RUN apk --no-cache add ca-certificates
+COPY --from=builder /app/target/aarch64-unknown-linux-gnu/release/kernel-gossip-operator /usr/local/bin/kernel-gossip-operator
+RUN chmod +x /usr/local/bin/kernel-gossip-operator
+ENTRYPOINT ["/usr/local/bin/kernel-gossip-operator"]

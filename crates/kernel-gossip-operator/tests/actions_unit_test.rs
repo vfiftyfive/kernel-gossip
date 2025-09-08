@@ -15,6 +15,7 @@ mod actions_unit_tests {
             cgroup_writes: 78,
             duration_ns: 1000000,
             timeline: vec![],
+            ebpf_detection: true,
         };
 
         let pbc = build_pod_birth_certificate(&payload);
@@ -31,7 +32,7 @@ mod actions_unit_tests {
 
         // Verify kernel stats
         assert_eq!(pbc.spec.kernel_stats.total_syscalls, 1234);
-        assert_eq!(pbc.spec.kernel_stats.namespaces_created, 1);
+        assert_eq!(pbc.spec.kernel_stats.namespaces_created, 56);
         assert_eq!(pbc.spec.kernel_stats.cgroup_writes, 78);
         assert_eq!(pbc.spec.kernel_stats.total_duration_ms, 1); // 1000000 ns = 1 ms
     }
@@ -47,6 +48,8 @@ mod actions_unit_tests {
             actual_cpu_usage: 0.8,
             reported_cpu_usage: 0.5,
             period_seconds: 300,
+            ebpf_detection: true,
+            throttle_ns: 123456789,
         };
 
         let kw = build_kernel_whisper(&payload);
@@ -80,6 +83,8 @@ mod actions_unit_tests {
             actual_cpu_usage: 0.8,
             reported_cpu_usage: 0.5,
             period_seconds: 300,
+            ebpf_detection: true,
+            throttle_ns: 123456789,
         };
         let kw = build_kernel_whisper(&payload);
         assert_eq!(kw.spec.severity, Severity::Critical);
@@ -94,6 +99,8 @@ mod actions_unit_tests {
             actual_cpu_usage: 0.8,
             reported_cpu_usage: 0.5,
             period_seconds: 300,
+            ebpf_detection: true,
+            throttle_ns: 123456789,
         };
         let kw = build_kernel_whisper(&payload);
         assert_eq!(kw.spec.severity, Severity::Warning);

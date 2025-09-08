@@ -1,89 +1,48 @@
 # Kubernetes Manifests: Production Deployment
 
-## 🎯 **STATUS: PRODUCTION READY DEPLOYMENT**
+## 🎯 **STATUS: WEBHOOK PIPELINE OPERATIONAL**
 
-### ✅ **DEPLOYED AND OPERATIONAL**
-- **GKE Cluster**: cds2025 (scaleops-dev-rel project, europe-west1-b)
+### ✅ **Current State**
+- **GKE Cluster**: cds2025 (europe-west1-b)
 - **Namespace**: kernel-gossip  
-- **Architecture**: 2-component system (operator + kernel-observer)
+- **Components**: operator + kernel-observer (DaemonSet)
+- **Webhook Flow**: ✅ Working end-to-end
 
-## 📁 Manifest Organization
+## 📁 Manifest Structure
 ```
 k8s/
-├── crds/                     # Custom Resource Definitions
-│   ├── kernel-whisper.yaml  # CPU throttling detection CRD
-│   └── pod-birth-cert.yaml  # Container creation timeline CRD
-├── operator/                 # Operator deployment
-│   ├── deployment.yaml      # kernel-gossip-operator
-│   ├── service.yaml         # Webhook endpoint exposure  
-│   └── rbac.yaml           # Cluster permissions
-├── kernel-observer.yaml     # DaemonSet for eBPF monitoring
-├── namespace.yaml           # kernel-gossip namespace
-├── workloads.yaml           # Test nginx + load generator
-└── demo-workload.yaml       # Alternative test workload
+├── crds/                # KernelWhisper & PodBirthCertificate
+├── operator/            # Deployment, Service, RBAC
+├── kernel-observer.yaml # DaemonSet with hostNetwork + DNS fix
+├── namespace.yaml       
+└── workloads.yaml       # Test nginx + ddosify Job
 ```
 
-## 🚀 **Current Deployment Commands**
+## 🚀 **Deployment**
 ```bash
-# Complete deployment (WORKING)
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/crds/
-kubectl apply -f k8s/operator/  
-kubectl apply -f k8s/kernel-observer.yaml
-
-# Test workloads
-kubectl apply -f k8s/workloads.yaml
-kubectl apply -f ddosify-load.yaml  # Load generator
-
-# Verify results
+kubectl apply -f k8s/
 kubectl get kernelwhispers,podbirthcertificates -n kernel-gossip
 ```
 
-## 🔧 **Active Container Images**
+## 🔧 **Container Images**
 - **Operator**: `gcr.io/scaleops-dev-rel/kernel-gossip-operator:latest`
-- **Observer**: `gcr.io/scaleops-dev-rel/kernel-observer:pragmatic-container-syscalls`
+- **Observer**: `gcr.io/scaleops-dev-rel/kernel-observer:ubuntu-bpftrace-complete` ❌ **BLOCKED**
 
-## 📊 **Deployment Status**
-```
-NAME                                   READY   STATUS    RESTARTS
-kernel-gossip-operator-xxx-xxx        1/1     Running   0       
-kernel-observer-xxx                    1/1     Running   0       (DaemonSet)
-nginx-monitored-xxx-xxx               1/1     Running   0
-ddosify-load-test-xxx                 0/1     Completed 0       (Job)
-```
+## 🚧 **Current Architecture Issue**
+- **Problem**: Ubuntu 20.04 bpftrace (v0.9.4) + kernel headers mismatch with minikube kernel (6.10.14-linuxkit)
+- **Root Cause**: Container headers (5.4.0) ≠ Host kernel (6.10.14-linuxkit) 
+- **Error**: `modprobe: FATAL: Module kheaders not found` + `linux/types.h` not found
+- **Status**: Need to use IOVisor bpftrace image architecture for kernel compatibility
 
-## 🎪 **Demo Evidence Available**
-```bash
-# Live CRDs with real data
-kubectl describe kernelwhisper test-nginx-kw -n kernel-gossip
-# Shows: 85.5% throttling, "Consider increase CPU limits by 50%"
+## ✅ **Working Components**
+- **DNS Resolution**: Added `dnsPolicy: ClusterFirstWithHostNet` to DaemonSet
+- **JSON Schema**: Fixed untagged enum serialization  
+- **Webhook Communication**: HTTP 200 responses confirmed
+- **Script Compatibility**: Fixed `else if` syntax for bpftrace 0.9.4
+- **Real Parsing**: Golden syscalls parsing implemented in Rust
 
-kubectl describe podbirthcertificate -n kernel-gossip  
-# Shows: 3,421 syscalls, 750ms duration (historical data)
-```
+## 🔧 **Next Steps**
+- Use IOVisor bpftrace image with ARM64 build or kernel header matching approach
+- Alternative: Simplified eBPF approach without raw tracepoints
 
-## 🚨 **Known Issues**
-- ❌ **PodBirthCertificate**: New certificates not created due to PID resolution blocker
-- ✅ **KernelWhisper**: Working with real-time throttling detection
-- ✅ **eBPF Detection**: 211,400+ syscalls detected from containers
-
-## 🎯 **Production Readiness**
-- **RBAC**: Proper cluster permissions configured
-- **Security**: Non-root containers, security contexts
-- **Networking**: ClusterIP services, internal communication
-- **Resources**: CPU/memory limits and requests defined
-- **Observability**: Health endpoints, metrics, logging
-
-## 📋 **Deployment Validation**
-```bash
-# Health checks
-kubectl get pods -n kernel-gossip
-kubectl logs -n kernel-gossip -l app.kubernetes.io/name=kernel-gossip-operator
-kubectl logs -n kernel-gossip -l app.kubernetes.io/name=kernel-observer
-
-# CRD verification  
-kubectl get crd | grep kernel.gossip.io
-kubectl get kernelwhispers,podbirthcertificates -A
-```
-
-**Last Update**: 2025-09-07 - Production deployment confirmed, PID resolution blocking new birth certificates
+**Last Update**: 2025-09-08 - Architecture blocked on kernel header mismatch
